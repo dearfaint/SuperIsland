@@ -1,7 +1,13 @@
 #!/bin/bash
-# Usage: ./scripts/build-and-release.sh
+# Usage: ./scripts/build-and-release-intel.sh
 # Requires: APPLE_ID, APP_SPECIFIC_PASSWORD, TEAM_ID, SIGNING_IDENTITY env vars
 # or reads from .env file
+#
+# Produces an Intel-only (x86_64) signed + notarized DMG at
+# build-intel/SuperIsland-x86_64.dmg. The arm64 release script
+# (./scripts/build-and-release.sh) is the canonical Apple Silicon path
+# and writes to build/. The two are intentionally kept as separate
+# self-contained scripts so each is easy to debug in isolation.
 
 set -euo pipefail
 
@@ -9,10 +15,10 @@ set -euo pipefail
 source .env 2>/dev/null || true
 APP_NAME="SuperIsland"
 SCHEME="${APP_NAME}"
-BUILD_DIR="build"
+BUILD_DIR="build-intel"
 ARCHIVE_PATH="${BUILD_DIR}/${APP_NAME}.xcarchive"
 APP_PATH="${BUILD_DIR}/${APP_NAME}.app"
-DMG_PATH="${BUILD_DIR}/${APP_NAME}.dmg"
+DMG_PATH="${BUILD_DIR}/${APP_NAME}-x86_64.dmg"
 DMG_STAGING_DIR="${BUILD_DIR}/dmg-root"
 ENTITLEMENTS="SuperIsland/SuperIsland.entitlements"
 
@@ -29,18 +35,18 @@ mkdir -p "${BUILD_DIR}"
 echo "==> Generating Xcode project..."
 xcodegen generate
 
-echo "==> Archiving..."
-# Note: Do NOT set BUILD_LIBRARY_FOR_DISTRIBUTION=YES. That flag is for
-# frameworks shipped as precompiled binaries; forcing it on makes every
-# SwiftPM dependency emit + verify a .swiftinterface, which fails on some
-# packages (e.g. Aptabase) and isn't useful for an app bundle.
-# SWIFT_VERIFY_EMITTED_MODULE_INTERFACE=NO kept as a safety net.
+echo "==> Archiving (x86_64)..."
+# Force x86_64 only so the archive runs on Intel Macs and the resulting
+# binary is half the size of a universal build. The project.yml default
+# is ARCHS_STANDARD which would yield a universal app.
 xcodebuild archive \
   -project "${APP_NAME}.xcodeproj" \
   -scheme "${SCHEME}" \
   -configuration Release \
   -archivePath "${ARCHIVE_PATH}" \
   -destination "generic/platform=macOS" \
+  ARCHS="x86_64" \
+  ONLY_ACTIVE_ARCH=NO \
   SKIP_INSTALL=NO \
   SWIFT_VERIFY_EMITTED_MODULE_INTERFACE=NO \
   CODE_SIGN_STYLE=Automatic \
@@ -48,11 +54,6 @@ xcodebuild archive \
   ENABLE_HARDENED_RUNTIME=YES
 
 echo "==> Extracting app from archive..."
-# Skip `xcodebuild -exportArchive`: its IDEDistributionMethodManager is
-# flaky on Xcode 16 for Developer ID, and we re-sign the whole bundle
-# a few steps below anyway (after injecting the bundled node binary),
-# so whatever signature the export step would have applied is discarded.
-# Copying the .app directly out of the archive's Products is reliable.
 APP_IN_ARCHIVE="${ARCHIVE_PATH}/Products/Applications/${APP_NAME}.app"
 if [ ! -d "${APP_IN_ARCHIVE}" ]; then
   echo "ERROR: ${APP_IN_ARCHIVE} not found after archive"
@@ -61,23 +62,21 @@ fi
 rm -rf "${APP_PATH}"
 cp -R "${APP_IN_ARCHIVE}" "${APP_PATH}"
 
-echo "==> Bundling Node.js runtime..."
+echo "==> Bundling Node.js runtime (x86_64)..."
 NODE_VERSION="20.19.0"
 NODE_TMP="$(mktemp -d)"
-curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-darwin-arm64.tar.gz" \
-  | tar -xz -C "${NODE_TMP}" --strip-components=2 "node-v${NODE_VERSION}-darwin-arm64/bin/node"
+curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-darwin-x64.tar.gz" \
+  | tar -xz -C "${NODE_TMP}" --strip-components=2 "node-v${NODE_VERSION}-darwin-x64/bin/node"
 cp "${NODE_TMP}/node" "${APP_PATH}/Contents/Resources/node"
 chmod +x "${APP_PATH}/Contents/Resources/node"
 rm -rf "${NODE_TMP}"
 echo "   Bundled node v${NODE_VERSION} ($(du -sh "${APP_PATH}/Contents/Resources/node" | cut -f1))"
 
 echo "==> Re-signing app (required after injecting node binary)..."
-# Sign the bundled node binary with JIT entitlements (V8 requires executable memory)
 NODE_ENTITLEMENTS="SuperIsland/node.entitlements"
 codesign --sign "${SIGNING_IDENTITY}" --force --options runtime \
   --entitlements "${NODE_ENTITLEMENTS}" \
   "${APP_PATH}/Contents/Resources/node"
-# Re-sign the entire app bundle
 codesign --sign "${SIGNING_IDENTITY}" --force --deep --options runtime \
   --entitlements "${ENTITLEMENTS}" \
   "${APP_PATH}"

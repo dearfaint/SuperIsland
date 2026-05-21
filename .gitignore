@@ -1,3 +1,7 @@
+*/build-intel/**
+build-intel/
+build-intel/**
+build-intel/*
 *.xcodeproj
 xcuserdata/
 build/

@@ -1,15 +1,19 @@
 #!/bin/bash
-# Usage: ./scripts/build-dmg.sh
-# Creates a local (unsigned) install-style DMG in build/ for development/testing.
+# Usage: ./scripts/build-dmg-intel.sh
+# Creates a local (unsigned) install-style x86_64 DMG in build-intel/ for
+# development/testing.
+#
+# Mirror of ./scripts/build-dmg.sh (arm64) — kept as a separate self-contained
+# script so each arch is easy to debug in isolation.
 
 set -euo pipefail
 
 APP_NAME="SuperIsland"
 SCHEME="${APP_NAME}"
-BUILD_DIR="build"
+BUILD_DIR="build-intel"
 DERIVED_DATA="${BUILD_DIR}/DerivedData"
 APP_PATH="${BUILD_DIR}/${APP_NAME}.app"
-DMG_PATH="${BUILD_DIR}/${APP_NAME}.dmg"
+DMG_PATH="${BUILD_DIR}/${APP_NAME}-x86_64.dmg"
 DMG_STAGING_DIR="${BUILD_DIR}/dmg-root"
 
 echo "==> Cleaning build directory..."
@@ -19,13 +23,14 @@ mkdir -p "${BUILD_DIR}"
 echo "==> Generating Xcode project..."
 xcodegen generate
 
-echo "==> Building..."
+echo "==> Building (x86_64)..."
 xcodebuild build \
   -project "${APP_NAME}.xcodeproj" \
   -scheme "${SCHEME}" \
   -configuration Release \
   -derivedDataPath "${DERIVED_DATA}" \
-  -destination "platform=macOS,arch=arm64" \
+  -destination "platform=macOS,arch=x86_64" \
+  ARCHS="x86_64" \
   ONLY_ACTIVE_ARCH=NO
 
 echo "==> Copying app bundle..."
@@ -36,11 +41,11 @@ if [ -z "${BUILT_APP}" ]; then
 fi
 cp -R "${BUILT_APP}" "${APP_PATH}"
 
-echo "==> Bundling Node.js runtime..."
+echo "==> Bundling Node.js runtime (x86_64)..."
 NODE_VERSION="20.19.0"
 NODE_TMP="$(mktemp -d)"
-curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-darwin-arm64.tar.gz" \
-  | tar -xz -C "${NODE_TMP}" --strip-components=2 "node-v${NODE_VERSION}-darwin-arm64/bin/node"
+curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-darwin-x64.tar.gz" \
+  | tar -xz -C "${NODE_TMP}" --strip-components=2 "node-v${NODE_VERSION}-darwin-x64/bin/node"
 cp "${NODE_TMP}/node" "${APP_PATH}/Contents/Resources/node"
 chmod +x "${APP_PATH}/Contents/Resources/node"
 rm -rf "${NODE_TMP}"
