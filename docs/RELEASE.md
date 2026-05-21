@@ -55,7 +55,7 @@ Repeat for `build-intel/SuperIsland.app`. Expected: `lipo -info` reports `arm64`
 
 ## Homebrew Cask update
 
-The template lives at `packaging/homebrew/superisland.rb` and uses `on_arm` / `on_intel` blocks to pick the right DMG per architecture.
+The cask lives at `homebrew-tap/Casks/superisland.rb` and uses `on_arm` / `on_intel` blocks to pick the right DMG per architecture. The `homebrew-tap/` folder mirrors the standalone `shobhit99/homebrew-tap` GitHub repo — see `homebrew-tap/README.md` for the publishing flow.
 
 After uploading both release DMGs:
 
@@ -73,9 +73,11 @@ Update:
 Then test locally with Homebrew:
 
 ```bash
-brew install --cask --no-quarantine ./packaging/homebrew/superisland.rb
+brew install --cask --no-quarantine ./homebrew-tap/Casks/superisland.rb
 brew uninstall --cask superisland
 ```
+
+Once verified, mirror `homebrew-tap/` into the `shobhit99/homebrew-tap` repo and push so `brew install --cask shobhit99/tap/superisland` picks up the new version.
 
 ## Release checklist
 
