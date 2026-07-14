@@ -6,7 +6,7 @@ struct WeatherData {
     var temperature: Double = 0
     var temperatureHigh: Double = 0
     var temperatureLow: Double = 0
-    var condition: String = "Clear"
+    var condition: String = String(localized: "Clear")
     var conditionIcon: String = "sun.max.fill"
     var locationName: String = ""
     var hourlyForecast: [HourlyWeather] = []
@@ -173,10 +173,9 @@ final class WeatherManager: NSObject, ObservableObject {
             for i in startIndex..<endIndex {
                 let hourStr: String
                 if i == currentHour {
-                    hourStr = "Now"
+                    hourStr = String(localized: "Now")
                 } else {
-                    let hour = i % 24
-                    hourStr = hour == 0 ? "12 AM" : (hour <= 12 ? "\(hour) \(hour < 12 ? "AM" : "PM")" : "\(hour - 12) PM")
+                    hourStr = localizedHourLabel(for: times[i], fallbackHour: i % 24)
                 }
 
                 forecast.append(HourlyWeather(
@@ -193,21 +192,45 @@ final class WeatherManager: NSObject, ObservableObject {
 
     private func conditionName(for code: Int) -> String {
         switch code {
-        case 0: return "Clear"
-        case 1, 2, 3: return "Partly Cloudy"
-        case 45, 48: return "Foggy"
-        case 51, 53, 55: return "Drizzle"
-        case 61, 63, 65: return "Rain"
-        case 66, 67: return "Freezing Rain"
-        case 71, 73, 75: return "Snow"
-        case 77: return "Snow Grains"
-        case 80, 81, 82: return "Showers"
-        case 85, 86: return "Snow Showers"
-        case 95: return "Thunderstorm"
-        case 96, 99: return "Hailstorm"
-        default: return "Clear"
+        case 0: return String(localized: "Clear")
+        case 1, 2, 3: return String(localized: "Partly Cloudy")
+        case 45, 48: return String(localized: "Foggy")
+        case 51, 53, 55: return String(localized: "Drizzle")
+        case 61, 63, 65: return String(localized: "Rain")
+        case 66, 67: return String(localized: "Freezing Rain")
+        case 71, 73, 75: return String(localized: "Snow")
+        case 77: return String(localized: "Snow Grains")
+        case 80, 81, 82: return String(localized: "Showers")
+        case 85, 86: return String(localized: "Snow Showers")
+        case 95: return String(localized: "Thunderstorm")
+        case 96, 99: return String(localized: "Hailstorm")
+        default: return String(localized: "Clear")
         }
     }
+
+    private func localizedHourLabel(for timestamp: String, fallbackHour: Int) -> String {
+        if let date = Self.hourTimestampFormatter.date(from: timestamp) {
+            return date.formatted(date: .omitted, time: .shortened)
+        }
+
+        var components = DateComponents()
+        components.calendar = .current
+        components.hour = fallbackHour
+        components.minute = 0
+        if let fallbackDate = components.date {
+            return fallbackDate.formatted(date: .omitted, time: .shortened)
+        }
+
+        return "\(fallbackHour)"
+    }
+
+    private static let hourTimestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        return formatter
+    }()
 
     private func conditionIcon(for code: Int) -> String {
         switch code {

@@ -1,77 +1,116 @@
 {
   "sections": [
     {
-      "title": "Behavior",
+      "title": {
+        "en": "Behavior",
+        "zh-Hans": "行为"
+      },
       "fields": [
         {
           "type": "toggle",
           "key": "enabled",
-          "label": "Enable auto scrobbling",
+          "label": {
+            "en": "Enable auto scrobbling",
+            "zh-Hans": "启用自动记录"
+          },
           "default": true
         },
         {
           "type": "toggle",
           "key": "sendNowPlaying",
-          "label": "Send now playing updates",
+          "label": {
+            "en": "Send now playing updates",
+            "zh-Hans": "发送正在播放更新"
+          },
           "default": true
         },
         {
           "type": "toggle",
           "key": "notifyErrors",
-          "label": "Show auth and queue errors",
+          "label": {
+            "en": "Show auth and queue errors",
+            "zh-Hans": "显示认证和队列错误"
+          },
           "default": true
         }
       ]
     },
     {
-      "title": "Sources",
+      "title": {
+        "en": "Sources",
+        "zh-Hans": "来源"
+      },
       "fields": [
         {
           "type": "toggle",
           "key": "allowSpotify",
-          "label": "Spotify desktop",
+          "label": {
+            "en": "Spotify desktop",
+            "zh-Hans": "Spotify 桌面版"
+          },
           "default": true
         },
         {
           "type": "toggle",
           "key": "allowAppleMusic",
-          "label": "Apple Music",
+          "label": {
+            "en": "Apple Music",
+            "zh-Hans": "Apple Music"
+          },
           "default": true
         },
         {
           "type": "toggle",
           "key": "allowBrowsers",
-          "label": "Browser players",
+          "label": {
+            "en": "Browser players",
+            "zh-Hans": "浏览器播放器"
+          },
           "default": true
         },
         {
           "type": "toggle",
           "key": "allowOtherApps",
-          "label": "Other system media apps",
+          "label": {
+            "en": "Other system media apps",
+            "zh-Hans": "其他系统媒体应用"
+          },
           "default": true
         }
       ]
     },
     {
-      "title": "Account Actions",
+      "title": {
+        "en": "Account Actions",
+        "zh-Hans": "账号操作"
+      },
       "fields": [
         {
           "type": "button",
           "key": "connectLastFm",
-          "label": "Connect Last.fm",
+          "label": {
+            "en": "Connect Last.fm",
+            "zh-Hans": "连接 Last.fm"
+          },
           "action": "auth",
           "enabledWhen": "uiCanConnect"
         },
         {
           "type": "button",
           "key": "retryQueue",
-          "label": "Retry queued scrobbles",
+          "label": {
+            "en": "Retry queued scrobbles",
+            "zh-Hans": "重试队列中的记录"
+          },
           "enabledWhen": "uiCanRetryQueue"
         },
         {
           "type": "button",
           "key": "signOut",
-          "label": "Disconnect Last.fm",
+          "label": {
+            "en": "Disconnect Last.fm",
+            "zh-Hans": "断开 Last.fm"
+          },
           "enabledWhen": "uiCanDisconnect"
         }
       ]

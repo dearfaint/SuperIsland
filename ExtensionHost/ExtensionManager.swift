@@ -620,7 +620,7 @@ final class WhatsAppWebBridge: ObservableObject {
         shouldKeepProviderRunning = true
         performBridgeUpdate {
             connectionState = .loading
-            statusText = "Refreshing QR code..."
+            statusText = String(localized: "Refreshing QR code...")
             qrCodeDataURL = nil
             lastError = nil
             recentMessages.removeAll()
@@ -637,7 +637,7 @@ final class WhatsAppWebBridge: ObservableObject {
         shouldKeepProviderRunning = true
         performBridgeUpdate {
             connectionState = .loading
-            statusText = "Logging out..."
+            statusText = String(localized: "Logging out...")
             qrCodeDataURL = nil
             lastError = nil
             recentMessages.removeAll()
@@ -733,8 +733,8 @@ final class WhatsAppWebBridge: ObservableObject {
         guard fileManager.fileExists(atPath: providerScriptURL.path) else {
             performBridgeUpdate {
                 connectionState = .error
-                statusText = "WhatsApp provider unavailable"
-                lastError = "Missing provider script at \(providerScriptURL.path)"
+                statusText = String(localized: "WhatsApp provider unavailable")
+                lastError = String(localized: "Missing provider script at \(providerScriptURL.path)")
             }
             return
         }
@@ -742,8 +742,8 @@ final class WhatsAppWebBridge: ObservableObject {
         guard let nodeExecutableURL = resolveNodeExecutableURL() else {
             performBridgeUpdate {
                 connectionState = .error
-                statusText = "Node.js required"
-                lastError = "Node.js is not installed. Please install it from nodejs.org, then restart Super Island."
+                statusText = String(localized: "Node.js required")
+                lastError = String(localized: "Node.js is not installed. Please install it from nodejs.org, then restart Super Island.")
             }
             DispatchQueue.main.async { Self.showNodeJSInstallAlert() }
             return
@@ -754,8 +754,8 @@ final class WhatsAppWebBridge: ObservableObject {
         } catch {
             performBridgeUpdate {
                 connectionState = .error
-                statusText = "WhatsApp provider unavailable"
-                lastError = "Failed to prepare auth directory: \(error.localizedDescription)"
+                statusText = String(localized: "WhatsApp provider unavailable")
+                lastError = String(localized: "Failed to prepare auth directory: \(error.localizedDescription)")
             }
             return
         }
@@ -819,7 +819,7 @@ final class WhatsAppWebBridge: ObservableObject {
             performBridgeUpdate {
                 if connectionState == .idle || connectionState == .error {
                     connectionState = .loading
-                    statusText = "Starting WhatsApp realtime bridge..."
+                    statusText = String(localized: "Starting WhatsApp realtime bridge...")
                     if lastError == nil {
                         qrCodeDataURL = nil
                     }
@@ -838,7 +838,7 @@ final class WhatsAppWebBridge: ObservableObject {
             providerErrorHandle = nil
             performBridgeUpdate {
                 connectionState = .error
-                statusText = "Failed to start WhatsApp bridge"
+                statusText = String(localized: "Failed to start WhatsApp bridge")
                 lastError = error.localizedDescription
             }
         }
@@ -846,11 +846,11 @@ final class WhatsAppWebBridge: ObservableObject {
 
     private static func showNodeJSInstallAlert() {
         let alert = NSAlert()
-        alert.messageText = "Node.js Required for WhatsApp"
-        alert.informativeText = "The WhatsApp integration needs Node.js to run. It's a free, one-time install — just download the macOS installer from nodejs.org and restart Super Island."
+        alert.messageText = String(localized: "Node.js Required for WhatsApp")
+        alert.informativeText = String(localized: "The WhatsApp integration needs Node.js to run. It's a free, one-time install — just download the macOS installer from nodejs.org and restart Super Island.")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Download Node.js")
-        alert.addButton(withTitle: "Dismiss")
+        alert.addButton(withTitle: String(localized: "Download Node.js"))
+        alert.addButton(withTitle: String(localized: "Dismiss"))
         if alert.runModal() == .alertFirstButtonReturn {
             NSWorkspace.shared.open(URL(string: "https://nodejs.org/en/download")!)
         }
@@ -1017,7 +1017,7 @@ final class WhatsAppWebBridge: ObservableObject {
                 lastError = details == nil ? message : "\(message): \(details!)"
                 if connectionState != .loggedIn {
                     connectionState = .error
-                    statusText = "WhatsApp provider error"
+                    statusText = String(localized: "WhatsApp provider error")
                 }
             }
         default:
@@ -1189,7 +1189,7 @@ final class WhatsAppWebBridge: ObservableObject {
             lastError = nil
             if connectionState != .loggedIn {
                 connectionState = .loggedIn
-                statusText = "Connected"
+                statusText = String(localized: "Connected")
                 qrCodeDataURL = nil
             }
         }
@@ -1246,15 +1246,15 @@ final class WhatsAppWebBridge: ObservableObject {
     private func defaultStatusText(for state: ConnectionState) -> String {
         switch state {
         case .idle:
-            return "Not connected"
+            return String(localized: "Not connected")
         case .loading:
-            return "Connecting to WhatsApp..."
+            return String(localized: "Connecting to WhatsApp...")
         case .qrReady:
-            return "Scan QR code with WhatsApp"
+            return String(localized: "Scan QR code with WhatsApp")
         case .loggedIn:
-            return "Connected"
+            return String(localized: "Connected")
         case .error:
-            return "WhatsApp provider error"
+            return String(localized: "WhatsApp provider error")
         }
     }
 
@@ -1301,7 +1301,9 @@ final class WhatsAppWebBridge: ObservableObject {
         performBridgeUpdate {
             if connectionState != .loggedIn {
                 connectionState = .loading
-                statusText = delay < 1 ? "Restarting WhatsApp provider..." : "Restarting WhatsApp provider in \(Int(ceil(delay)))s..."
+                statusText = delay < 1
+                    ? String(localized: "Restarting WhatsApp provider...")
+                    : String(localized: "Restarting WhatsApp provider in \(Int(ceil(delay)))s...")
             }
         }
 

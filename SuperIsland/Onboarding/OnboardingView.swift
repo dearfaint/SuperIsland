@@ -416,7 +416,7 @@ private struct PermissionRow: View {
                 GrantedBadge()
             } else {
                 Button(action: action) {
-                    Text(permission == .bluetooth ? "Open Settings" : "Grant")
+                    Text(permission.requestActionTitle)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.white.opacity(0.85))
                         .padding(.horizontal, 12)
@@ -569,22 +569,22 @@ private struct OnboardingExtensionInfo: Identifiable {
     static let available: [OnboardingExtensionInfo] = [
         OnboardingExtensionInfo(
             id: "superisland.pomodoro",
-            name: "Pomodoro Timer",
-            description: "Focus timer with countdown in the island",
+            name: String(localized: "Pomodoro Timer"),
+            description: String(localized: "Focus timer with countdown in the island"),
             fallbackIcon: "timer",
             badge: nil
         ),
         OnboardingExtensionInfo(
             id: "superisland.whatsapp-web",
-            name: "WhatsApp Web",
-            description: "Route WhatsApp messages to the island",
+            name: String(localized: "WhatsApp Web"),
+            description: String(localized: "Route WhatsApp messages to the island"),
             fallbackIcon: "message.fill",
-            badge: "Requires Login"
+            badge: String(localized: "Requires Login")
         ),
         OnboardingExtensionInfo(
             id: "superisland.ai-usage",
-            name: "AI Usage",
-            description: "Claude & Codex usage rings in the notch",
+            name: String(localized: "AI Usage"),
+            description: String(localized: "Claude & Codex usage rings in the notch"),
             fallbackIcon: "brain.head.profile",
             badge: nil
         ),
@@ -735,7 +735,7 @@ private struct ReadyScreen: View {
         let names = OnboardingExtensionInfo.available
             .filter { enabledExtensions.contains($0.id) }
             .map(\.name)
-        if names.isEmpty { return "None" }
+        if names.isEmpty { return String(localized: "None") }
         return names.joined(separator: ", ")
     }
 
@@ -765,7 +765,7 @@ private struct ReadyScreen: View {
                 SummaryRow(
                     icon: "checkmark.shield.fill",
                     title: "Permissions",
-                    detail: "\(grantedCount) of 4 granted",
+                    detail: String(localized: "\(grantedCount) of 4 granted"),
                     isFirst: true
                 )
                 SummaryRow(
@@ -782,7 +782,7 @@ private struct ReadyScreen: View {
 
             VStack(spacing: 10) {
                 PrimaryButton(
-                    title: launching ? "Launching..." : "Get Started",
+                    title: launching ? LocalizedStringKey("Launching...") : LocalizedStringKey("Get Started"),
                     isDisabled: launching,
                     action: getStarted
                 )
@@ -801,7 +801,7 @@ private struct ReadyScreen: View {
 
 private struct SummaryRow: View {
     let icon: String
-    let title: String
+    let title: LocalizedStringKey
     let detail: String
     let isFirst: Bool
 
@@ -832,7 +832,7 @@ private struct SummaryRow: View {
 // MARK: - Shared Components
 
 private struct PrimaryButton: View {
-    let title: String
+    let title: LocalizedStringKey
     var isDisabled: Bool = false
     let action: () -> Void
     @State private var hovering = false
@@ -1060,9 +1060,9 @@ private extension PermissionType {
     var requestActionTitle: String {
         switch self {
         case .bluetooth:
-            return "Open Settings"
+            return String(localized: "Open Settings")
         default:
-            return "Request Access"
+            return String(localized: "Grant")
         }
     }
 }

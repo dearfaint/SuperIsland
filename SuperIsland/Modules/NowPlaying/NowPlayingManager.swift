@@ -988,7 +988,7 @@ final class NowPlayingManager: ObservableObject {
             if snapshot.providerID == "browser" {
                 albumArt = nil
             }
-            if snapshot.isPlaying, !stale {
+            if snapshot.isPlaying, !stale, shouldAutoActivateForTrackChange {
                 AppState.shared.setActiveModule(.nowPlaying)
             }
         }
@@ -998,6 +998,13 @@ final class NowPlayingManager: ObservableObject {
         }
 
         updatePlaybackTimer()
+    }
+
+    private var shouldAutoActivateForTrackChange: Bool {
+        let appState = AppState.shared
+        guard let activeModule = appState.activeModule else { return true }
+        guard case .extension_ = activeModule else { return true }
+        return appState.isExtensionInactive(activeModule)
     }
 
     private func fetchArtworkIfNeeded(for snapshot: NowPlayingSnapshot) {

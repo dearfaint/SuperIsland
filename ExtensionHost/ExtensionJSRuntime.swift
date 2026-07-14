@@ -12,11 +12,11 @@ final class ExtensionJSRuntime {
         var errorDescription: String? {
             switch self {
             case .contextInitializationFailed:
-                return "Failed to initialize JSContext"
+                return String(localized: "Failed to initialize JSContext")
             case .scriptReadFailed(let url):
-                return "Failed to read extension script at \(url.path)"
+                return String(localized: "Failed to read extension script at \(url.path)")
             case .scriptEvaluationFailed(let message):
-                return "Failed to evaluate extension script: \(message)"
+                return String(localized: "Failed to evaluate extension script: \(message)")
             }
         }
     }
@@ -697,9 +697,9 @@ final class ExtensionJSRuntime {
               zstack: function(children) { return { type: 'zstack', children: children || [] }; },
               spacer: function(minLength) { return { type: 'spacer', minLength: minLength }; },
               scroll: function(child, opts) { return { type: 'scroll', child: child, axes: (opts && opts.axes) ?? 'vertical', showsIndicators: opts && opts.showsIndicators !== undefined ? !!opts.showsIndicators : true }; },
-              text: function(value, opts) { return { type: 'text', value: String(value ?? ''), style: (opts && opts.style) ?? 'body', color: opts && opts.color, lineLimit: opts && opts.lineLimit }; },
-              marqueeText: function(value, opts) { return { type: 'marquee-text', value: String(value ?? ''), style: (opts && opts.style) ?? 'body', color: opts && opts.color }; },
-              markdownText: function(value, opts) { return { type: 'markdown-text', value: String(value ?? ''), style: (opts && opts.style) ?? 'body', color: opts && opts.color, lineLimit: opts && opts.lineLimit }; },
+              text: function(value, opts) { return { type: 'text', value: value ?? '', style: (opts && opts.style) ?? 'body', color: opts && opts.color, lineLimit: opts && opts.lineLimit }; },
+              marqueeText: function(value, opts) { return { type: 'marquee-text', value: value ?? '', style: (opts && opts.style) ?? 'body', color: opts && opts.color }; },
+              markdownText: function(value, opts) { return { type: 'markdown-text', value: value ?? '', style: (opts && opts.style) ?? 'body', color: opts && opts.color, lineLimit: opts && opts.lineLimit }; },
               icon: function(name, opts) { return { type: 'icon', name: name, size: (opts && opts.size) ?? 14, color: opts && opts.color }; },
               image: function(url, opts) { return { type: 'image', url: url, width: opts.width, height: opts.height, cornerRadius: opts.cornerRadius }; },
               progress: function(value, opts) { return { type: 'progress', value: value, total: (opts && opts.total) ?? 1, color: opts && opts.color }; },
@@ -707,7 +707,7 @@ final class ExtensionJSRuntime {
               gauge: function(value, opts) { return { type: 'gauge', value: value, min: (opts && opts.min) ?? 0, max: (opts && opts.max) ?? 1, label: opts && opts.label }; },
               divider: function() { return { type: 'divider' }; },
               button: function(label, action) { return { type: 'button', label: label, action: action }; },
-              inputBox: function(placeholder, text, action, opts) { return { type: 'input-box', id: (opts && opts.id) ? String(opts.id) : '', placeholder: String(placeholder ?? ''), text: String(text ?? ''), action: action, autoFocus: opts && opts.autoFocus !== undefined ? !!opts.autoFocus : true, minHeight: (opts && opts.minHeight) ? Number(opts.minHeight) : 72, showsEmojiButton: opts && opts.showsEmojiButton !== undefined ? !!opts.showsEmojiButton : false }; },
+              inputBox: function(placeholder, text, action, opts) { return { type: 'input-box', id: (opts && opts.id) ? String(opts.id) : '', placeholder: placeholder ?? '', text: String(text ?? ''), action: action, autoFocus: opts && opts.autoFocus !== undefined ? !!opts.autoFocus : true, minHeight: (opts && opts.minHeight) ? Number(opts.minHeight) : 72, showsEmojiButton: opts && opts.showsEmojiButton !== undefined ? !!opts.showsEmojiButton : false }; },
               toggle: function(isOn, label, action) { return { type: 'toggle', isOn: !!isOn, label: label, action: action }; },
               slider: function(value, min, max, action) { return { type: 'slider', value: value, min: min, max: max, action: action }; },
               padding: function(child, opts) { return { type: 'padding', child: child, edges: (opts && opts.edges) ?? 'all', amount: (opts && opts.amount) ?? 8 }; },
@@ -741,7 +741,7 @@ final class ExtensionJSRuntime {
                 return View.cornerRadius(
                   View.background(
                     View.padding(
-                      View.text(String(label ?? ''), {
+                      View.text(label ?? '', {
                         style: 'footnote',
                         color: { r: 1, g: 1, b: 1, a: 0.8 },
                         lineLimit: 1
@@ -756,8 +756,8 @@ final class ExtensionJSRuntime {
 
               function shortcutHint() {
                 return View.hstack([
-                  shortcutBadge('Enter'),
-                  View.text('Send', {
+                  shortcutBadge({ en: 'Enter', 'zh-Hans': 'Enter' }),
+                  View.text({ en: 'Send', 'zh-Hans': '发送' }, {
                     style: 'footnote',
                     color: { r: 1, g: 1, b: 1, a: 0.52 },
                     lineLimit: 1
@@ -767,8 +767,8 @@ final class ExtensionJSRuntime {
                     color: { r: 1, g: 1, b: 1, a: 0.32 },
                     lineLimit: 1
                   }),
-                  shortcutBadge('Shift + Enter'),
-                  View.text('New line', {
+                  shortcutBadge({ en: 'Shift + Enter', 'zh-Hans': 'Shift + Enter' }),
+                  View.text({ en: 'New line', 'zh-Hans': '换行' }, {
                     style: 'footnote',
                     color: { r: 1, g: 1, b: 1, a: 0.52 },
                     lineLimit: 1
@@ -784,7 +784,7 @@ final class ExtensionJSRuntime {
                   const options = opts || {};
                   const content = View.vstack([
                     View.inputBox(
-                      String(options.placeholder ?? ''),
+                      options.placeholder ?? '',
                       String(options.text ?? ''),
                       String(options.action ?? ''),
                       {
@@ -795,7 +795,7 @@ final class ExtensionJSRuntime {
                       }
                     ),
                     options.error
-                      ? View.text(String(options.error), {
+                      ? View.text(options.error, {
                           style: 'footnote',
                           color: 'red',
                           lineLimit: 2

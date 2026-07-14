@@ -10,20 +10,20 @@ enum EnergyMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .normal: return "Normal"
-        case .smart: return "Smart"
-        case .lowPower: return "Low Power"
+        case .normal: return String(localized: "Normal")
+        case .smart: return String(localized: "Smart")
+        case .lowPower: return String(localized: "Low Power")
         }
     }
 
     var description: String {
         switch self {
         case .normal:
-            return "Keep refresh behavior responsive."
+            return String(localized: "Keep refresh behavior responsive.")
         case .smart:
-            return "Reduce background work while collapsed and restore quickly on hover."
+            return String(localized: "Reduce background work while collapsed and restore quickly on hover.")
         case .lowPower:
-            return "Slow non-essential refresh and pause inactive extension work."
+            return String(localized: "Slow non-essential refresh and pause inactive extension work.")
         }
     }
 }
@@ -38,15 +38,15 @@ enum ModuleRefreshPolicy: Equatable {
     var label: String {
         switch self {
         case .eventDriven:
-            return "Event driven"
+            return String(localized: "Event driven")
         case .interval(let interval, _):
-            return "Every \(Self.format(interval))"
+            return String(localized: "Every \(Self.format(interval))")
         case .activeOnly(let interval, _):
-            return "Active every \(Self.format(interval))"
+            return String(localized: "Active every \(Self.format(interval))")
         case .visibleOnly(let interval, _):
-            return "Visible every \(Self.format(interval))"
+            return String(localized: "Visible every \(Self.format(interval))")
         case .manual:
-            return "Manual"
+            return String(localized: "Manual")
         }
     }
 
@@ -99,7 +99,7 @@ final class ModuleRefreshScheduler: ObservableObject {
         var lastRunDate: Date?
         var lastRunDuration: TimeInterval?
         var lastError: String?
-        var status: String = "Scheduled"
+        var status: String = String(localized: "Scheduled")
     }
 
     private var jobs: [String: Job] = [:]
@@ -201,7 +201,7 @@ final class ModuleRefreshScheduler: ObservableObject {
         job.nextFireDate = nil
 
         guard job.enabled() else {
-            job.status = "Disabled"
+            job.status = String(localized: "Disabled")
             jobs[id] = job
             return
         }
@@ -224,7 +224,7 @@ final class ModuleRefreshScheduler: ObservableObject {
 
         timers[id] = timer
         job.nextFireDate = nextFireDate
-        job.status = "Scheduled"
+        job.status = String(localized: "Scheduled")
         jobs[id] = job
 
         if runIfNewlyVisible, shouldRunWhenBecomingVisible(job) {
@@ -306,13 +306,13 @@ final class ModuleRefreshScheduler: ObservableObject {
     private func passiveStatus(for job: Job) -> String {
         switch job.policy {
         case .eventDriven:
-            return "Event driven"
+            return String(localized: "Event driven")
         case .manual:
-            return "Manual"
+            return String(localized: "Manual")
         case .activeOnly, .visibleOnly:
-            return job.enabled() ? "Paused" : "Disabled"
+            return job.enabled() ? String(localized: "Paused") : String(localized: "Disabled")
         case .interval:
-            return "Paused"
+            return String(localized: "Paused")
         }
     }
 
@@ -353,7 +353,7 @@ final class ModuleRefreshScheduler: ObservableObject {
                 EnergyDiagnosticsSnapshot(
                     id: job.id,
                     name: job.name,
-                    moduleName: job.module?.displayName ?? "App",
+                    moduleName: job.module?.displayName ?? String(localized: "App"),
                     policy: job.policy.label,
                     status: job.status,
                     nextFireDate: job.nextFireDate,

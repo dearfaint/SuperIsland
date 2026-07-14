@@ -9,6 +9,10 @@ enum HomePanel: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var title: String {
+        String(localized: titleResource)
+    }
+
+    var titleResource: LocalizedStringResource {
         switch self {
         case .none: return "Empty"
         case .nowPlaying: return "Now Playing"
@@ -44,6 +48,10 @@ enum AnimationLevel: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var title: String {
+        String(localized: titleResource)
+    }
+
+    var titleResource: LocalizedStringResource {
         switch self {
         case .full: return "Full"
         case .subtle: return "Subtle"

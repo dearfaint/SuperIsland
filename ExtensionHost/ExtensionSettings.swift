@@ -11,17 +11,42 @@ struct SettingsSchema: Decodable {
 }
 
 struct SettingsSection: Decodable, Identifiable {
-    let title: String
+    private let titleText: LocalizedExtensionString
     let fields: [SettingsField]
 
     var id: String { title }
+
+    var title: String { titleText.value }
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case fields
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        titleText = try container.decode(LocalizedExtensionString.self, forKey: .title)
+        fields = try container.decode([SettingsField].self, forKey: .fields)
+    }
 }
 
 struct SettingsOption: Decodable, Identifiable {
     let value: String
-    let label: String
+    private let labelText: LocalizedExtensionString
 
     var id: String { value }
+    var label: String { labelText.value }
+
+    enum CodingKeys: String, CodingKey {
+        case value
+        case label
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        value = try container.decode(String.self, forKey: .value)
+        labelText = try container.decode(LocalizedExtensionString.self, forKey: .label)
+    }
 }
 
 enum JSONScalar: Decodable {
@@ -62,7 +87,9 @@ enum JSONScalar: Decodable {
 struct SettingsField: Decodable, Identifiable {
     let type: String
     let key: String
-    let label: String
+    private let labelText: LocalizedExtensionString
+    private let placeholderText: LocalizedExtensionString?
+    private let descriptionText: LocalizedExtensionString?
     let action: String?
     let enabledWhen: String?
 
@@ -73,11 +100,16 @@ struct SettingsField: Decodable, Identifiable {
     let defaultValue: JSONScalar?
 
     var id: String { key }
+    var label: String { labelText.value }
+    var placeholder: String? { placeholderText?.value }
+    var description: String? { descriptionText?.value }
 
     enum CodingKeys: String, CodingKey {
         case type
         case key
         case label
+        case placeholder
+        case description
         case action
         case enabledWhen
         case min
@@ -85,6 +117,22 @@ struct SettingsField: Decodable, Identifiable {
         case step
         case options
         case defaultValue = "default"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = try container.decode(String.self, forKey: .type)
+        key = try container.decode(String.self, forKey: .key)
+        labelText = try container.decode(LocalizedExtensionString.self, forKey: .label)
+        placeholderText = try container.decodeIfPresent(LocalizedExtensionString.self, forKey: .placeholder)
+        descriptionText = try container.decodeIfPresent(LocalizedExtensionString.self, forKey: .description)
+        action = try container.decodeIfPresent(String.self, forKey: .action)
+        enabledWhen = try container.decodeIfPresent(String.self, forKey: .enabledWhen)
+        min = try container.decodeIfPresent(Double.self, forKey: .min)
+        max = try container.decodeIfPresent(Double.self, forKey: .max)
+        step = try container.decodeIfPresent(Double.self, forKey: .step)
+        options = try container.decodeIfPresent([SettingsOption].self, forKey: .options)
+        defaultValue = try container.decodeIfPresent(JSONScalar.self, forKey: .defaultValue)
     }
 
     var defaultBool: Bool {
@@ -302,12 +350,12 @@ struct ExtensionSettingsRenderer: View {
         case "text", "color":
             VStack(alignment: .leading, spacing: 4) {
                 Text(field.label)
-                TextField(field.label, text: stringBinding(for: field))
+                TextField(field.placeholder ?? field.label, text: stringBinding(for: field))
                     .textFieldStyle(.roundedBorder)
             }
 
         default:
-            Text("Unsupported setting field: \(field.type)")
+            Text(String(localized: "Unsupported setting field: \(field.type)"))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

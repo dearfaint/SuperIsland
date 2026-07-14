@@ -171,7 +171,7 @@ indirect enum ViewNode: Equatable {
         case "text":
             let style = TextStyle(rawValue: value.forProperty("style")?.toString() ?? "body") ?? .body
             return .text(
-                value.forProperty("value")?.toString() ?? "",
+                localizedString(value.forProperty("value")),
                 style: style,
                 color: parseColor(value.forProperty("color")),
                 lineLimit: propertyInt(value, key: "lineLimit")
@@ -180,7 +180,7 @@ indirect enum ViewNode: Equatable {
         case "marquee-text":
             let style = TextStyle(rawValue: value.forProperty("style")?.toString() ?? "body") ?? .body
             return .marqueeText(
-                value.forProperty("value")?.toString() ?? "",
+                localizedString(value.forProperty("value")),
                 style: style,
                 color: parseColor(value.forProperty("color"))
             )
@@ -188,7 +188,7 @@ indirect enum ViewNode: Equatable {
         case "markdown-text":
             let style = TextStyle(rawValue: value.forProperty("style")?.toString() ?? "body") ?? .body
             return .markdownText(
-                value.forProperty("value")?.toString() ?? "",
+                localizedString(value.forProperty("value")),
                 style: style,
                 color: parseColor(value.forProperty("color")),
                 lineLimit: propertyInt(value, key: "lineLimit")
@@ -229,7 +229,7 @@ indirect enum ViewNode: Equatable {
                 value: value.forProperty("value")?.toDouble() ?? 0,
                 min: value.forProperty("min")?.toDouble() ?? 0,
                 max: value.forProperty("max")?.toDouble() ?? 1,
-                label: value.forProperty("label")?.toString()
+                label: localizedString(value.forProperty("label"), fallback: "")
             )
 
         case "divider":
@@ -243,7 +243,7 @@ indirect enum ViewNode: Equatable {
 
         case "input-box":
             let inputID = value.forProperty("id")?.toString() ?? ""
-            let placeholder = value.forProperty("placeholder")?.toString() ?? ""
+            let placeholder = localizedString(value.forProperty("placeholder"))
             let text = value.forProperty("text")?.toString() ?? ""
             let actionID = value.forProperty("action")?.toString() ?? ""
             let autoFocus = value.forProperty("autoFocus")?.isBoolean == true
@@ -266,7 +266,7 @@ indirect enum ViewNode: Equatable {
         case "toggle":
             return .toggle(
                 isOn: value.forProperty("isOn")?.toBool() ?? false,
-                label: value.forProperty("label")?.toString() ?? "",
+                label: localizedString(value.forProperty("label")),
                 actionID: value.forProperty("action")?.toString() ?? ""
             )
 
@@ -375,6 +375,20 @@ indirect enum ViewNode: Equatable {
         }
 
         return children
+    }
+
+    private static func localizedString(_ value: JSValue?, fallback: String = "") -> String {
+        guard let value, !value.isNull, !value.isUndefined else {
+            return fallback
+        }
+        if value.isString || value.isNumber || value.isBoolean {
+            return value.toString() ?? fallback
+        }
+        if let dictionary = value.toDictionary(),
+           let resolved = LocalizedExtensionString.resolve(dictionary) {
+            return resolved
+        }
+        return value.toString() ?? fallback
     }
 
     private static func parseColor(_ value: JSValue?) -> ColorValue {

@@ -1,13 +1,19 @@
 {
   "id": "superisland.whatsapp-web",
-  "name": "WhatsApp Web",
+  "name": {
+    "en": "WhatsApp Web",
+    "zh-Hans": "WhatsApp Web"
+  },
   "version": "1.0.0",
   "minAppVersion": "1.0.0",
   "main": "index.js",
   "author": {
     "name": "SuperIsland"
   },
-  "description": "Pairs with WhatsApp Web via QR and routes incoming messages to the SuperIsland notification feed.",
+  "description": {
+    "en": "Pairs with WhatsApp Web via QR and routes incoming messages to the SuperIsland notification feed.",
+    "zh-Hans": "通过二维码配对 WhatsApp Web，并将收到的消息路由到 SuperIsland 通知流。"
+  },
   "icon": "icon.svg",
   "license": "MIT",
   "categories": ["communication", "productivity"],

@@ -1,12 +1,18 @@
 {
   "sections": [
     {
-      "title": "Timer",
+      "title": {
+        "en": "Timer",
+        "zh-Hans": "计时器"
+      },
       "fields": [
         {
           "type": "slider",
           "key": "workDuration",
-          "label": "Work duration (min)",
+          "label": {
+            "en": "Work duration (min)",
+            "zh-Hans": "工作时长（分钟）"
+          },
           "min": 5,
           "max": 90,
           "step": 5,
@@ -15,7 +21,10 @@
         {
           "type": "slider",
           "key": "breakDuration",
-          "label": "Break duration (min)",
+          "label": {
+            "en": "Break duration (min)",
+            "zh-Hans": "休息时长（分钟）"
+          },
           "min": 1,
           "max": 30,
           "step": 1,
@@ -24,18 +33,27 @@
       ]
     },
     {
-      "title": "Notifications",
+      "title": {
+        "en": "Notifications",
+        "zh-Hans": "通知"
+      },
       "fields": [
         {
           "type": "toggle",
           "key": "notifyOnComplete",
-          "label": "Notify when phase ends",
+          "label": {
+            "en": "Notify when phase ends",
+            "zh-Hans": "阶段结束时通知"
+          },
           "default": true
         },
         {
           "type": "toggle",
           "key": "playSound",
-          "label": "Play notification sound",
+          "label": {
+            "en": "Play notification sound",
+            "zh-Hans": "播放通知声音"
+          },
           "default": true
         }
       ]

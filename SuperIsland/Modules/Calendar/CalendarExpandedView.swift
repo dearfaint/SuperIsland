@@ -8,9 +8,10 @@ struct CalendarExpandedView: View {
     private let calendar = Foundation.Calendar.current
 
     private let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "h:mm a"
-        return f
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter
     }()
 
     var body: some View {
@@ -32,7 +33,7 @@ struct CalendarExpandedView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
                 Spacer()
-                Text("\(manager.todayEvents.count) events")
+                Text(eventCountLabel(for: manager.todayEvents.count))
                     .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.5))
             }
@@ -59,7 +60,7 @@ struct CalendarExpandedView: View {
 
                         if let url = manager.joinURL(for: event) {
                             Button(action: { NSWorkspace.shared.open(url) }) {
-                                Text("Join")
+                                Text(String(localized: "Join"))
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
@@ -71,7 +72,7 @@ struct CalendarExpandedView: View {
                         }
                     }
                 } else {
-                    Text("No more events today")
+                    Text(String(localized: "No more events today"))
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.5))
                 }
@@ -126,7 +127,7 @@ struct CalendarExpandedView: View {
                     Spacer(minLength: 4)
 
                     if !isCurrentMonthVisible {
-                        Button("Today") {
+                        Button(String(localized: "Today")) {
                             manager.resetDisplayedMonthToCurrent()
                             manager.selectDate(Date())
                         }
@@ -188,7 +189,7 @@ struct CalendarExpandedView: View {
 
             if manager.selectedDateEvents.isEmpty {
                 Spacer()
-                Text("No events")
+                Text(String(localized: "No events"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.4))
                     .frame(maxWidth: .infinity)
@@ -210,14 +211,14 @@ struct CalendarExpandedView: View {
 
     private var upcomingPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Upcoming")
+            Text(String(localized: "Upcoming"))
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white)
                 .padding(.bottom, 8)
 
             if manager.upcomingWeekEvents.isEmpty {
                 Spacer()
-                Text("Nothing this week")
+                Text(String(localized: "Nothing this week"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.4))
                     .frame(maxWidth: .infinity)
@@ -247,7 +248,7 @@ struct CalendarExpandedView: View {
                         .fill(Color(cgColor: event.calendar.cgColor))
                         .frame(width: 2, height: 14)
 
-                    Text(event.title ?? "Untitled")
+                    Text(event.title ?? String(localized: "Untitled"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.white.opacity(0.78))
                         .lineLimit(1)
@@ -255,7 +256,7 @@ struct CalendarExpandedView: View {
                     Spacer(minLength: 0)
 
                     if event.isAllDay {
-                        Text("All Day")
+                        Text(String(localized: "All Day"))
                             .font(.system(size: 9, weight: .medium))
                             .foregroundColor(.white.opacity(0.35))
                     } else {
@@ -267,7 +268,11 @@ struct CalendarExpandedView: View {
             }
 
             if events.count > 3 {
-                Text("+\(events.count - 3) more")
+                Text(String(
+                    format: String(localized: "+%lld more"),
+                    locale: Locale.current,
+                    events.count - 3
+                ))
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(.white.opacity(0.3))
                     .padding(.leading, 8)
@@ -277,7 +282,7 @@ struct CalendarExpandedView: View {
 
     private func upcomingDayLabel(for date: Date) -> String {
         if calendar.isDateInTomorrow(date) {
-            return "Tomorrow"
+            return String(localized: "Tomorrow")
         }
         return Self.upcomingDayFormatter.string(from: date)
     }
@@ -290,13 +295,13 @@ struct CalendarExpandedView: View {
                 .padding(.top, 4)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(event.title ?? "Untitled")
+                Text(event.title ?? String(localized: "Untitled"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.88))
                     .lineLimit(1)
 
                 if event.isAllDay {
-                    Text("All Day")
+                    Text(String(localized: "All Day"))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.white.opacity(0.45))
                 } else {
@@ -321,20 +326,20 @@ struct CalendarExpandedView: View {
                         eventActionIcon("video.fill")
                     }
                     .buttonStyle(.plain)
-                    .help("Open meeting link")
+                    .help(String(localized: "Open meeting link"))
 
                     Button { copy(url: url) } label: {
                         eventActionIcon("doc.on.doc")
                     }
                     .buttonStyle(.plain)
-                    .help("Copy meeting link")
+                    .help(String(localized: "Copy meeting link"))
                 }
 
                 Button { manager.hideCalendar(for: event) } label: {
                     eventActionIcon("eye.slash")
                 }
                 .buttonStyle(.plain)
-                .help("Hide this calendar")
+                .help(String(localized: "Hide this calendar"))
             }
             .padding(.top, 4)
         }
@@ -435,13 +440,13 @@ struct CalendarExpandedView: View {
 
     private var selectedDateTitle: String {
         if calendar.isDateInToday(manager.selectedDate) {
-            return "Today"
+            return String(localized: "Today")
         }
         if calendar.isDateInYesterday(manager.selectedDate) {
-            return "Yesterday"
+            return String(localized: "Yesterday")
         }
         if calendar.isDateInTomorrow(manager.selectedDate) {
-            return "Tomorrow"
+            return String(localized: "Tomorrow")
         }
         return Self.selectedDateFormatter.string(from: manager.selectedDate)
     }
@@ -449,7 +454,7 @@ struct CalendarExpandedView: View {
     private var eventCountLabel: String {
         let count = manager.selectedDateEvents.count
         if count == 0 { return "" }
-        return count == 1 ? "1 event" : "\(count) events"
+        return eventCountLabel(for: count)
     }
 
     private var monthTitle: String {
@@ -518,27 +523,38 @@ struct CalendarExpandedView: View {
 
     private var headerDate: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMMM d"
+        formatter.setLocalizedDateFormatFromTemplate("EEEE MMMM d")
         return formatter.string(from: Date())
     }
 
     private static let monthTitleFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
+        formatter.setLocalizedDateFormatFromTemplate("MMMM yyyy")
         return formatter
     }()
 
     private static let selectedDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "EEE, d MMM"
+        formatter.setLocalizedDateFormatFromTemplate("EEE d MMM")
         return formatter
     }()
 
     private static let upcomingDayFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, d MMM"
+        formatter.setLocalizedDateFormatFromTemplate("EEEE d MMM")
         return formatter
     }()
+
+    private func eventCountLabel(for count: Int) -> String {
+        if count == 1 {
+            return String(localized: "1 event")
+        }
+        return String(
+            format: String(localized: "%lld events"),
+            locale: Locale.current,
+            count
+        )
+    }
 }
 
 private struct CalendarGridMetrics {

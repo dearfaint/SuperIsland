@@ -11,6 +11,10 @@ private enum ExtensionListFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var title: String {
+        String(localized: titleResource)
+    }
+
+    var titleResource: LocalizedStringResource {
         switch self {
         case .all: return "All"
         case .active: return "Active"
@@ -347,7 +351,7 @@ struct ExtensionsSettingsView: View {
         return nil
     }
 
-    private func metadataRow(label: String, value: String) -> some View {
+    private func metadataRow(label: LocalizedStringResource, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(label)
                 .font(.system(size: 11, weight: .semibold))
@@ -382,9 +386,9 @@ struct ExtensionsSettingsView: View {
 
     private func extensionSource(for manifest: ExtensionManifest) -> (label: String, color: Color) {
         if isInstalledExtension(manifest) {
-            return ("Installed", Color.accentColor)
+            return (String(localized: "Installed"), Color.accentColor)
         }
-        return ("Bundled", .secondary)
+        return (String(localized: "Bundled"), .secondary)
     }
 
     private func isInstalledExtension(_ manifest: ExtensionManifest) -> Bool {
@@ -489,9 +493,9 @@ private struct LinearOAuthSettingsView: View {
 
     private var statusTitle: String {
         if let session {
-            return session.isExpired ? "Expired" : "Logged in"
+            return session.isExpired ? String(localized: "Expired") : String(localized: "Logged in")
         }
-        return "Not logged in"
+        return String(localized: "Not logged in")
     }
 
     private var statusColor: Color {
@@ -504,18 +508,18 @@ private struct LinearOAuthSettingsView: View {
     private var statusMessage: String {
         if let session {
             if session.isExpired {
-                return "Your Linear session has expired. Authenticate again to resume mention syncing."
+                return String(localized: "Your Linear session has expired. Authenticate again to resume mention syncing.")
             }
-            return "Linear is authenticated. New mentions will appear in the Super Island."
+            return String(localized: "Linear is authenticated. New mentions will appear in the Super Island.")
         }
-        return "Authenticate with Linear to start mention notifications and inline replies."
+        return String(localized: "Authenticate with Linear to start mention notifications and inline replies.")
     }
 
     private var primaryButtonTitle: String {
         if let session {
-            return session.isExpired ? "Log In Again" : "Reconnect"
+            return session.isExpired ? String(localized: "Log In Again") : String(localized: "Reconnect")
         }
-        return "Log In to Linear"
+        return String(localized: "Log In to Linear")
     }
 
     private func reloadSession() {
@@ -540,7 +544,7 @@ private struct LinearOAuthSettingsView: View {
 
     private func expirationLabel(expiresAt: Date, isExpired: Bool) -> String {
         let formatted = expiresAt.formatted(date: .abbreviated, time: .shortened)
-        return isExpired ? "Expired at \(formatted)" : "Expires at \(formatted)"
+        return isExpired ? String(localized: "Expired at \(formatted)") : String(localized: "Expires at \(formatted)")
     }
 }
 
@@ -672,9 +676,9 @@ private struct LastFmOAuthSettingsView: View {
 
     private var statusTitle: String {
         if let session {
-            return session.isExpired ? "Expired" : "Logged in"
+            return session.isExpired ? String(localized: "Expired") : String(localized: "Logged in")
         }
-        return "Not logged in"
+        return String(localized: "Not logged in")
     }
 
     private var statusColor: Color {
@@ -687,21 +691,21 @@ private struct LastFmOAuthSettingsView: View {
     private var statusMessage: String {
         if let session {
             if session.isExpired {
-                return "Your Last.fm session has expired. Authenticate again to resume scrobbling."
+                return String(localized: "Your Last.fm session has expired. Authenticate again to resume scrobbling.")
             }
             if !session.username.isEmpty {
-                return "Last.fm is connected as \(session.username). New plays will scrobble automatically."
+                return String(localized: "Last.fm is connected as \(session.username). New plays will scrobble automatically.")
             }
-            return "Last.fm is connected. New plays will scrobble automatically."
+            return String(localized: "Last.fm is connected. New plays will scrobble automatically.")
         }
-        return "Authenticate with Last.fm to start scrobbling your listening history."
+        return String(localized: "Authenticate with Last.fm to start scrobbling your listening history.")
     }
 
     private var primaryButtonTitle: String {
         if let session {
-            return session.isExpired ? "Log In Again" : "Reconnect"
+            return session.isExpired ? String(localized: "Log In Again") : String(localized: "Reconnect")
         }
-        return "Log In to Last.fm"
+        return String(localized: "Log In to Last.fm")
     }
 
     private func reloadSession() {
@@ -726,7 +730,7 @@ private struct LastFmOAuthSettingsView: View {
 
     private func expirationLabel(expiresAt: Date, isExpired: Bool) -> String {
         let formatted = expiresAt.formatted(date: .abbreviated, time: .shortened)
-        return isExpired ? "Expired at \(formatted)" : "Expires at \(formatted)"
+        return isExpired ? String(localized: "Expired at \(formatted)") : String(localized: "Expires at \(formatted)")
     }
 }
 
@@ -875,15 +879,15 @@ private struct WhatsAppWebBridgeSettingsView: View {
     private var stateTitle: String {
         switch bridge.connectionState {
         case .idle:
-            return "Idle"
+            return String(localized: "Idle")
         case .loading:
-            return "Loading"
+            return String(localized: "Loading")
         case .qrReady:
-            return "QR Ready"
+            return String(localized: "QR Ready")
         case .loggedIn:
-            return "Connected"
+            return String(localized: "Connected")
         case .error:
-            return "Error"
+            return String(localized: "Error")
         }
     }
 

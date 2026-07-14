@@ -147,13 +147,13 @@ struct GeneralSettingsView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Power mode").font(.system(size: 13))
-                        Text(appState.energyMode.description)
+                        Text(verbatim: appState.energyMode.description)
                             .font(.system(size: 11)).foregroundColor(.secondary)
                     }
                     Spacer(minLength: 12)
                     Picker("", selection: energyModeBinding) {
                         ForEach(EnergyMode.allCases) { mode in
-                            Text(mode.title).tag(mode)
+                            Text(verbatim: mode.title).tag(mode)
                         }
                     }
                     .pickerStyle(.menu)
@@ -302,7 +302,9 @@ struct GeneralSettingsView: View {
     @ViewBuilder
     private func permissionRow(
         _ permission: PermissionType,
-        title: String, icon: String, description: String
+        title: LocalizedStringResource,
+        icon: String,
+        description: LocalizedStringResource
     ) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)

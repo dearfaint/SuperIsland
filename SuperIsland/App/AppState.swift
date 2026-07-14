@@ -29,6 +29,10 @@ enum ModuleType: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var displayName: String {
+        String(localized: displayNameResource)
+    }
+
+    var displayNameResource: LocalizedStringResource {
         switch self {
         case .nowPlaying: return "Now Playing"
         case .volumeHUD: return "Volume"
@@ -66,6 +70,10 @@ enum NotchHapticIntensity: Int, CaseIterable, Identifiable {
     var id: Int { rawValue }
 
     var title: String {
+        String(localized: titleResource)
+    }
+
+    var titleResource: LocalizedStringResource {
         switch self {
         case .off: return "Off"
         case .subtle: return "Subtle"
@@ -210,7 +218,7 @@ enum FullExpandedTab: Hashable, Identifiable {
     var title: String {
         switch self {
         case .home:
-            return "Home"
+            return String(localized: "Home")
         case .module(let module):
             return module.displayName
         }

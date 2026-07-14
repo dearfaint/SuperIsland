@@ -53,12 +53,12 @@ struct ExtensionManifest: Codable, Identifiable, Hashable {
     }
 
     let id: String
-    let name: String
+    private let nameText: LocalizedExtensionString
     let version: String
     let minAppVersion: String
     let main: String
     let author: Author?
-    let description: String
+    private let descriptionText: LocalizedExtensionString
     let icon: String?
     let license: String?
     let categories: [String]
@@ -70,6 +70,14 @@ struct ExtensionManifest: Codable, Identifiable, Hashable {
 
     var bundleURL: URL
     var settingsURL: URL?
+
+    var name: String {
+        nameText.value
+    }
+
+    var description: String {
+        descriptionText.value
+    }
 
     var entryURL: URL {
         bundleURL.appendingPathComponent(main)
@@ -107,12 +115,12 @@ struct ExtensionManifest: Codable, Identifiable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(String.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
+        nameText = try container.decode(LocalizedExtensionString.self, forKey: .name)
         version = try container.decode(String.self, forKey: .version)
         minAppVersion = try container.decodeIfPresent(String.self, forKey: .minAppVersion) ?? "1.0.0"
         main = try container.decodeIfPresent(String.self, forKey: .main) ?? "index.js"
         author = try container.decodeIfPresent(Author.self, forKey: .author)
-        description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
+        descriptionText = try container.decodeIfPresent(LocalizedExtensionString.self, forKey: .description) ?? LocalizedExtensionString("")
         icon = try container.decodeIfPresent(String.self, forKey: .icon)
         license = try container.decodeIfPresent(String.self, forKey: .license)
         categories = try container.decodeIfPresent([String].self, forKey: .categories) ?? []
@@ -130,12 +138,12 @@ struct ExtensionManifest: Codable, Identifiable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         try container.encode(id, forKey: .id)
-        try container.encode(name, forKey: .name)
+        try container.encode(nameText, forKey: .name)
         try container.encode(version, forKey: .version)
         try container.encode(minAppVersion, forKey: .minAppVersion)
         try container.encode(main, forKey: .main)
         try container.encodeIfPresent(author, forKey: .author)
-        try container.encode(description, forKey: .description)
+        try container.encode(descriptionText, forKey: .description)
         try container.encodeIfPresent(icon, forKey: .icon)
         try container.encodeIfPresent(license, forKey: .license)
         try container.encode(categories, forKey: .categories)
@@ -154,11 +162,11 @@ struct ExtensionManifest: Codable, Identifiable, Hashable {
         var errorDescription: String? {
             switch self {
             case .missingManifest(let directory):
-                return "Missing manifest.json in \(directory.path)"
+                return String(localized: "Missing manifest.json in \(directory.path)")
             case .missingEntry(let file):
-                return "Missing extension entry file: \(file.lastPathComponent)"
+                return String(localized: "Missing extension entry file: \(file.lastPathComponent)")
             case .invalidSource(let url):
-                return "Unsupported extension source: \(url.path)"
+                return String(localized: "Unsupported extension source: \(url.path)")
             }
         }
     }

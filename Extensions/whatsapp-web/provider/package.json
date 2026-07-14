@@ -2,6 +2,7 @@
   "name": "dynamic-whatsapp-web-provider",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.10.0",
   "dependencies": {
     "@whiskeysockets/baileys": "7.0.0-rc.9"
   }

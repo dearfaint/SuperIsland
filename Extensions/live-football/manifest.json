@@ -1,13 +1,19 @@
 {
   "id": "superisland.live-football",
-  "name": "Live Football",
+  "name": {
+    "en": "Live Football",
+    "zh-Hans": "实时足球"
+  },
   "version": "1.0.0",
   "minAppVersion": "1.0.0",
   "main": "index.js",
   "author": {
     "name": "Shobhit"
   },
-  "description": "Live World Cup 2026 scores with country flags, goal celebrations, and the full fixture list.",
+  "description": {
+    "en": "Live World Cup 2026 scores with country flags, goal celebrations, and the full fixture list.",
+    "zh-Hans": "显示 2026 世界杯实时比分、国家旗帜、进球庆祝和完整赛程。"
+  },
   "icon": "icon.svg",
   "license": "MIT",
   "categories": ["sports"],

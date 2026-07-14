@@ -1,45 +1,75 @@
 {
   "sections": [
     {
-      "title": "CLI Hooks",
+      "title": {
+        "en": "CLI Hooks",
+        "zh-Hans": "CLI 钩子"
+      },
       "fields": [
         {
           "type": "toggle",
           "key": "hooksClaudeCode",
-          "label": "Claude Code",
+          "label": {
+            "en": "Claude Code",
+            "zh-Hans": "Claude Code"
+          },
           "default": true,
-          "description": "Install hooks into ~/.claude/settings.json to track Claude Code session state (Working / Waiting / Idle / Error)."
+          "description": {
+            "en": "Install hooks into ~/.claude/settings.json to track Claude Code session state (Working / Waiting / Idle / Error).",
+            "zh-Hans": "将钩子安装到 ~/.claude/settings.json，用于跟踪 Claude Code 会话状态（工作中 / 等待 / 空闲 / 错误）。"
+          }
         },
         {
           "type": "toggle",
           "key": "hooksCodex",
-          "label": "Codex CLI",
+          "label": {
+            "en": "Codex CLI",
+            "zh-Hans": "Codex CLI"
+          },
           "default": true,
-          "description": "Enable official Codex hooks by setting features.codex_hooks in ~/.codex/config.toml and installing command hooks in ~/.codex/hooks.json for Working / Idle / Error tracking."
+          "description": {
+            "en": "Enable official Codex hooks by setting features.codex_hooks in ~/.codex/config.toml and installing command hooks in ~/.codex/hooks.json for Working / Idle / Error tracking.",
+            "zh-Hans": "通过在 ~/.codex/config.toml 中启用 features.codex_hooks，并在 ~/.codex/hooks.json 安装命令钩子，跟踪工作中 / 空闲 / 错误状态。"
+          }
         }
       ]
     },
     {
-      "title": "Sound Alerts",
+      "title": {
+        "en": "Sound Alerts",
+        "zh-Hans": "声音提醒"
+      },
       "fields": [
         {
           "type": "toggle",
           "key": "soundAlert",
-          "label": "Alert on state change",
+          "label": {
+            "en": "Alert on state change",
+            "zh-Hans": "状态变化时提醒"
+          },
           "default": false,
-          "description": "Play a cue when an agent starts working, needs your input, or finishes a task. Also expands the Agents Status island briefly on completion."
+          "description": {
+            "en": "Play a cue when an agent starts working, needs your input, or finishes a task. Also expands the Agents Status island briefly on completion.",
+            "zh-Hans": "当代理开始工作、需要输入或完成任务时播放提示音；完成时还会短暂展开代理状态岛。"
+          }
         },
         {
           "type": "picker",
           "key": "soundPack",
-          "label": "Sound pack",
+          "label": {
+            "en": "Sound pack",
+            "zh-Hans": "声音包"
+          },
           "default": "8bit",
           "options": [
-            { "value": "8bit",    "label": "8-bit" },
-            { "value": "crystal", "label": "Crystal" },
-            { "value": "soft",    "label": "Soft" }
+            { "value": "8bit",    "label": { "en": "8-bit", "zh-Hans": "8-bit" } },
+            { "value": "crystal", "label": { "en": "Crystal", "zh-Hans": "清脆" } },
+            { "value": "soft",    "label": { "en": "Soft", "zh-Hans": "柔和" } }
           ],
-          "description": "Which bundled sound pack to use for start / needs-input / task-complete cues."
+          "description": {
+            "en": "Which bundled sound pack to use for start / needs-input / task-complete cues.",
+            "zh-Hans": "选择开始、需要输入和任务完成提示使用的内置声音包。"
+          }
         }
       ]
     }

@@ -327,15 +327,11 @@ final class CalendarManager: ObservableObject {
     var nextEventCountdown: String? {
         guard let next = nextEvent else { return nil }
         let interval = next.startDate.timeIntervalSinceNow
-        guard interval > 0 else { return "now" }
-
-        let minutes = Int(interval / 60)
-        if minutes < 60 {
-            return "in \(minutes) min"
-        }
-        let hours = minutes / 60
-        let remainingMinutes = minutes % 60
-        return "in \(hours)h \(remainingMinutes)m"
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return interval > 0
+            ? formatter.localizedString(for: next.startDate, relativeTo: Date())
+            : String(localized: "now")
     }
 
     func joinURL(for event: EKEvent) -> URL? {

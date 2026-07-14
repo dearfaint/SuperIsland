@@ -35,9 +35,9 @@ enum HomeWidgetSelection: Hashable, Identifiable {
     var displayName: String {
         switch self {
         case .none:
-            return "None"
+            return String(localized: "None")
         case .builtIn(.nowPlaying):
-            return "Media Player"
+            return String(localized: "Media Player")
         case .builtIn(let module):
             return module.displayName
         case .extension_(let extensionID):

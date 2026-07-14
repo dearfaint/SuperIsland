@@ -5,6 +5,7 @@ build-intel/*
 *.xcodeproj
 xcuserdata/
 build/
+.build/
 DerivedData/
 .env
 .DS_Store

@@ -297,7 +297,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: Constants.menuBarIconName, accessibilityDescription: "SuperIsland")
+            button.image = NSImage(systemSymbolName: Constants.menuBarIconName, accessibilityDescription: String(localized: "SuperIsland"))
         }
 
         item.menu = buildStatusMenu()
@@ -315,7 +315,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(makeMenuItem(title: "Battery", action: #selector(showBattery)))
         menu.addItem(NSMenuItem.separator())
 
-        let modulesItem = NSMenuItem(title: "Modules", action: nil, keyEquivalent: "")
+        let modulesItem = NSMenuItem(title: String(localized: "Modules"), action: nil, keyEquivalent: "")
         let modulesMenu = NSMenu()
 
         for module in ModuleType.allCases {
@@ -323,7 +323,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             moduleItem.target = self
             moduleItem.representedObject = module.rawValue
             moduleItem.state = AppState.shared.isModuleEnabled(module) ? .on : .off
-            moduleItem.image = NSImage(systemSymbolName: module.iconName, accessibilityDescription: module.displayName)
+            moduleItem.image = NSImage(systemSymbolName: module.iconName, accessibilityDescription: String(localized: module.displayNameResource))
             modulesMenu.addItem(moduleItem)
         }
 
@@ -394,8 +394,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func makeMenuItem(title: String, action: Selector, keyEquivalent: String = "") -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: keyEquivalent)
+    private func makeMenuItem(title: LocalizedStringResource, action: Selector, keyEquivalent: String = "") -> NSMenuItem {
+        let item = NSMenuItem(title: String(localized: title), action: action, keyEquivalent: keyEquivalent)
         item.target = self
         return item
     }
@@ -473,7 +473,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hostingController = NSHostingController(rootView: rootView)
 
         let window = NSWindow(contentViewController: hostingController)
-        window.title = "SuperIsland Settings"
+        window.title = String(localized: "SuperIsland Settings")
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.setContentSize(NSSize(width: 960, height: 680))
         window.minSize = NSSize(width: 800, height: 560)

@@ -6,6 +6,10 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var title: String {
+        String(localized: titleResource)
+    }
+
+    var titleResource: LocalizedStringResource {
         switch self {
         case .general:    "General"
         case .modules:    "Modules"
@@ -148,7 +152,11 @@ struct SettingsView: View {
 // MARK: - Shared Components
 
 struct SettingSectionLabel: View {
-    let title: String
+    private let title: LocalizedStringResource
+
+    init(title: LocalizedStringResource) {
+        self.title = title
+    }
 
     var body: some View {
         Text(title)
@@ -187,16 +195,34 @@ struct SettingRowDivider: View {
 }
 
 struct SettingToggleRow: View {
-    let title: String
-    var description: String? = nil
+    private let title: Text
+    private let description: Text?
     @Binding var isOn: Bool
+
+    init(title: LocalizedStringResource, description: LocalizedStringResource? = nil, isOn: Binding<Bool>) {
+        self.title = Text(title)
+        self.description = description.map(Text.init)
+        self._isOn = isOn
+    }
+
+    init(verbatimTitle title: String, verbatimDescription description: String? = nil, isOn: Binding<Bool>) {
+        self.title = Text(verbatim: title)
+        self.description = description.map(Text.init(verbatim:))
+        self._isOn = isOn
+    }
+
+    init(titleKey title: String, descriptionKey description: String? = nil, isOn: Binding<Bool>) {
+        self.title = Text(LocalizedStringKey(title))
+        self.description = description.map { Text(LocalizedStringKey($0)) }
+        self._isOn = isOn
+    }
 
     var body: some View {
         HStack(alignment: description != nil ? .top : .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 13))
+                title.font(.system(size: 13))
                 if let desc = description {
-                    Text(desc)
+                    desc
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -253,9 +279,15 @@ struct StepperField: View {
 
 // Backward-compat wrapper used by ExtensionsSettingsView
 struct SettingsCard<Content: View>: View {
-    let title: String
-    var subtitle: String? = nil
+    private let title: LocalizedStringResource
+    private let subtitle: LocalizedStringResource?
     @ViewBuilder var content: Content
+
+    init(title: LocalizedStringResource, subtitle: LocalizedStringResource? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

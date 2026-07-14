@@ -22,15 +22,15 @@
 - macOS 14 Sonoma or later
 - Xcode 15+
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) — `brew install xcodegen`
-- Node.js 18+ (only needed to work on extensions)
+- Node.js 18+ and pnpm (only needed to work on extensions)
 
 ---
 
 ## Setup
 
 ```bash
-git clone https://github.com/shobhit99/superisland.git
-cd superisland
+git clone https://github.com/dearfaint/SuperIsland.git
+cd SuperIsland
 xcodegen generate
 open SuperIsland.xcodeproj
 ```
@@ -38,6 +38,10 @@ open SuperIsland.xcodeproj
 Select the `SuperIsland` scheme, choose your Mac as the destination, and hit Run.
 
 > On first launch the app will ask for Accessibility, Calendar, and Location permissions. These are required for the relevant modules to work.
+
+## Localization
+
+The native app supports English and Simplified Chinese (`zh-Hans`) and follows the macOS app language setting. English is the fallback language. Text supplied at runtime by JavaScript extensions remains owned by each extension until the extension localization contract is added.
 
 ---
 
@@ -66,13 +70,7 @@ Then run:
 
 This archives a universal app, bundles a universal runtime, notarizes the DMG, and produces `build/SuperIsland.dmg`.
 
-Release and Homebrew packaging notes are in [docs/RELEASE.md](docs/RELEASE.md). A Homebrew Cask template is available at [packaging/homebrew/superisland.rb](packaging/homebrew/superisland.rb).
-
-To verify a built app bundle:
-
-```bash
-./scripts/verify-universal-build.sh build/SuperIsland.app --skip-signature
-```
+Release and packaging notes are in [docs/RELEASE.md](docs/RELEASE.md).
 
 ---
 

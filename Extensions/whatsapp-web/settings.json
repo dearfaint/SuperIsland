@@ -1,12 +1,18 @@
 {
   "sections": [
     {
-      "title": "Behavior",
+      "title": {
+        "en": "Behavior",
+        "zh-Hans": "行为"
+      },
       "fields": [
         {
           "type": "toggle",
           "key": "showConnectionHint",
-          "label": "Show connection hint when not logged in",
+          "label": {
+            "en": "Show connection hint when not logged in",
+            "zh-Hans": "未登录时显示连接提示"
+          },
           "default": true
         }
       ]

@@ -108,10 +108,16 @@ struct EmojiPickerView: View {
 
     private var footer: some View {
         HStack {
-            Text(manager.footerLabel ?? "Recent and common suggestions")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.48))
-                .lineLimit(1)
+            Group {
+                if let footerLabel = manager.footerLabel {
+                    Text(footerLabel)
+                } else {
+                    Text("Recent and common suggestions")
+                }
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.white.opacity(0.48))
+            .lineLimit(1)
 
             Spacer(minLength: 0)
         }

@@ -97,7 +97,7 @@ struct AppearanceSettingsView: View {
 
     @ViewBuilder
     private func section<Content: View>(
-        title: String,
+        title: LocalizedStringResource,
         reset: @escaping () -> Void,
         @ViewBuilder content: () -> Content
     ) -> some View {
@@ -114,8 +114,8 @@ struct AppearanceSettingsView: View {
     }
 
     private func sizeRow(
-        title: String,
-        description: String,
+        title: LocalizedStringResource,
+        description: LocalizedStringResource,
         value: Binding<Double>,
         step: Double,
         range: ClosedRange<Double>,

@@ -16,7 +16,12 @@ struct BatteryConsumerApp: Identifiable, Equatable {
     let metricLabel: String
 
     var formattedImpact: String {
-        String(format: "%.1f %@", impactScore, metricLabel)
+        String(
+            format: String(localized: "%.1f %@"),
+            locale: Locale.current,
+            impactScore,
+            metricLabel
+        )
     }
 }
 
@@ -28,7 +33,7 @@ final class BatteryManager: ObservableObject {
     @Published var isCharging: Bool = false
     @Published var isPluggedIn: Bool = false
     @Published var timeRemaining: String = ""
-    @Published var powerSource: String = "Battery"
+    @Published var powerSource: String = String(localized: "Battery")
     @Published var isLowBattery: Bool = false
     @Published var cycleCount: Int = 0
     @Published var batteryHistory: [BatteryHistorySample] = []
@@ -118,7 +123,9 @@ final class BatteryManager: ObservableObject {
 
         if let source = info[kIOPSPowerSourceStateKey] as? String {
             isPluggedIn = source == kIOPSACPowerValue
-            powerSource = isPluggedIn ? "Power Adapter" : "Battery"
+            powerSource = isPluggedIn
+                ? String(localized: "Power Adapter")
+                : String(localized: "Battery")
 
             if hasLoadedInitialSnapshot, wasPluggedIn, !isPluggedIn {
                 EnergySuggestionPresenter.shared.suggestLowPower(reason: .battery)
@@ -126,15 +133,19 @@ final class BatteryManager: ObservableObject {
         }
 
         if let timeToEmpty = info[kIOPSTimeToEmptyKey] as? Int, timeToEmpty > 0 {
-            let hours = timeToEmpty / 60
-            let minutes = timeToEmpty % 60
-            timeRemaining = hours > 0 ? "\(hours)h \(minutes)m remaining" : "\(minutes)m remaining"
+            timeRemaining = String(
+                format: String(localized: "%@ remaining"),
+                locale: Locale.current,
+                localizedDuration(minutes: timeToEmpty)
+            )
         } else if let timeToFull = info[kIOPSTimeToFullChargeKey] as? Int, timeToFull > 0 {
-            let hours = timeToFull / 60
-            let minutes = timeToFull % 60
-            timeRemaining = hours > 0 ? "\(hours)h \(minutes)m until full" : "\(minutes)m until full"
+            timeRemaining = String(
+                format: String(localized: "%@ until full"),
+                locale: Locale.current,
+                localizedDuration(minutes: timeToFull)
+            )
         } else {
-            timeRemaining = isCharging ? "Calculating..." : ""
+            timeRemaining = isCharging ? String(localized: "Calculating...") : ""
         }
 
         appendHistorySample(force: false)
@@ -343,9 +354,18 @@ final class BatteryManager: ObservableObject {
                 id: appName,
                 appName: appName,
                 impactScore: 0,
-                metricLabel: "power"
+                metricLabel: String(localized: "power")
             )
         }
+    }
+
+    private func localizedDuration(minutes: Int) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.allowedUnits = minutes >= 60 ? [.hour, .minute] : [.minute]
+        formatter.maximumUnitCount = minutes >= 60 ? 2 : 1
+        formatter.zeroFormattingBehavior = .dropLeading
+        return formatter.string(from: TimeInterval(minutes * 60)) ?? "\(minutes)"
     }
 
     var batteryIconName: String {

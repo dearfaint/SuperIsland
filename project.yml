@@ -1,6 +1,7 @@
 name: SuperIsland
 options:
   bundleIdPrefix: com.workview
+  developmentLanguage: en
   deploymentTarget:
     macOS: "14.0"
   minimumXcodeGenVersion: "2.35"
@@ -62,7 +63,7 @@ targets:
           WA_PROVIDER="${SRCROOT}/Extensions/whatsapp-web/provider"
           if [ -d "${WA_PROVIDER}/node_modules" ]; then
             echo "Bundling WhatsApp provider with esbuild..."
-            npx --yes esbuild \
+            pnpm --dir "${WA_PROVIDER}" dlx esbuild \
               "${WA_PROVIDER}/index.mjs" \
               --bundle \
               --platform=node \
@@ -70,7 +71,7 @@ targets:
               --outfile="${WA_PROVIDER}/bundle.cjs" 2>&1 && echo "esbuild: done" || echo "esbuild: failed (will use index.mjs)"
           fi
 
-          for ext in ai-usage pomodoro whatsapp-web agents-status linear-mentions lastfm-scrobbler; do
+          for ext in ai-usage pomodoro whatsapp-web agents-status linear-mentions lastfm-scrobbler live-football; do
             SRC="${SRCROOT}/Extensions/${ext}"
             if [ -d "$SRC" ]; then
               rsync -a --delete \

@@ -1,13 +1,19 @@
 {
   "id": "superisland.lastfm-scrobbler",
-  "name": "Last.fm Scrobbler",
+  "name": {
+    "en": "Last.fm Scrobbler",
+    "zh-Hans": "Last.fm 记录器"
+  },
   "version": "0.1.0",
   "minAppVersion": "1.0.2",
   "main": "index.js",
   "author": {
     "name": "Jonathan Perez"
   },
-  "description": "Scrobble the track currently playing on your Mac to Last.fm from SuperIsland.",
+  "description": {
+    "en": "Scrobble the track currently playing on your Mac to Last.fm from SuperIsland.",
+    "zh-Hans": "从 SuperIsland 将 Mac 上当前播放的曲目记录到 Last.fm。"
+  },
   "icon": "icon.svg",
   "license": "MIT",
   "categories": ["music", "social", "productivity"],
