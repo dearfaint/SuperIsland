@@ -268,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let extensions = ExtensionManager.shared
         if extensions.runtimes[routing.extensionID] == nil {
-            extensions.activate(extensionID: routing.extensionID)
+            extensions.enableByUser(extensionID: routing.extensionID)
         }
         extensions.scheduleImmediateRefresh(extensionID: routing.extensionID)
         ExtensionLogger.shared.log(routing.extensionID, .info, "Stored \(routing.label) OAuth token from callback")
@@ -327,21 +327,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             modulesMenu.addItem(moduleItem)
         }
 
-        let extensionModules = ExtensionManager.shared.installed
-            .filter { !$0.capabilities.notificationFeed }
-
-        if !extensionModules.isEmpty {
-            modulesMenu.addItem(.separator())
-            for manifest in extensionModules {
-                let extensionItem = NSMenuItem(title: manifest.name, action: #selector(toggleExtension(_:)), keyEquivalent: "")
-                extensionItem.target = self
-                extensionItem.representedObject = manifest.id
-                extensionItem.state = ExtensionManager.shared.runtimes[manifest.id] != nil ? .on : .off
-                extensionItem.image = menuIconImage(for: manifest)
-                modulesMenu.addItem(extensionItem)
-            }
-        }
-
         modulesItem.submenu = modulesMenu
         menu.addItem(modulesItem)
 
@@ -350,14 +335,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
         menu.addItem(makeMenuItem(title: "Quit SuperIsland", action: #selector(quitApp), keyEquivalent: "q"))
         return menu
-    }
-
-    @MainActor
-    private func menuIconImage(for manifest: ExtensionManifest) -> NSImage? {
-        guard let image = manifest.iconImage?.copy() as? NSImage else { return nil }
-        image.isTemplate = false
-        image.size = NSSize(width: 16, height: 16)
-        return image
     }
 
     private func removeStatusItem() {
@@ -375,6 +352,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.applyMenuBarVisibility()
+                self?.rebuildStatusMenu()
+                AppState.shared.reconcileActiveModuleAvailability()
                 ModuleRefreshScheduler.shared.refreshScheduling()
                 ExtensionManager.shared.syncRuntimeEnergyState()
             }
@@ -431,19 +410,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         sender.state = newState ? .on : .off
-        rebuildStatusMenu()
-    }
-
-    @objc private func toggleExtension(_ sender: NSMenuItem) {
-        guard let extensionID = sender.representedObject as? String else { return }
-
-        if ExtensionManager.shared.runtimes[extensionID] != nil {
-            ExtensionManager.shared.disableByUser(extensionID: extensionID)
-        } else {
-            ExtensionManager.shared.activate(extensionID: extensionID)
-        }
-
-        sender.state = ExtensionManager.shared.runtimes[extensionID] != nil ? .on : .off
         rebuildStatusMenu()
     }
 

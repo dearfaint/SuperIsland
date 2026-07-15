@@ -1,0 +1,64 @@
+{
+  "sections": [
+    {
+      "title": {
+        "en": "Watchlist",
+        "zh-Hans": "自选股"
+      },
+      "fields": [
+        {
+          "type": "text",
+          "key": "symbols",
+          "label": {
+            "en": "Symbols",
+            "zh-Hans": "股票代码"
+          },
+          "description": {
+            "en": "Comma-separated. Supports HK:00990, HKEX:700, 0700.HK, SSE:600519, 600519.SS, SZSE:000001, 000001.SZ.",
+            "zh-Hans": "用逗号分隔。支持 HK:00990、HKEX:700、0700.HK、SSE:600519、600519.SS、SZSE:000001、000001.SZ。"
+          },
+          "placeholder": {
+            "en": "HKEX:700, SSE:600519, SZSE:000001",
+            "zh-Hans": "HKEX:700, SSE:600519, SZSE:000001"
+          },
+          "default": "HKEX:700, HKEX:9988, HKEX:3690, SSE:600519, SZSE:000001"
+        },
+        {
+          "type": "text",
+          "key": "primarySymbol",
+          "label": {
+            "en": "Primary compact symbol",
+            "zh-Hans": "紧凑视图主代码"
+          },
+          "placeholder": {
+            "en": "HKEX:700",
+            "zh-Hans": "HKEX:700"
+          },
+          "default": "HKEX:700"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Data",
+        "zh-Hans": "数据"
+      },
+      "fields": [
+        {
+          "type": "picker",
+          "key": "refreshMinutes",
+          "label": {
+            "en": "Refresh interval",
+            "zh-Hans": "刷新间隔"
+          },
+          "options": [
+            { "label": { "en": "Every 1 minute", "zh-Hans": "每 1 分钟" }, "value": "1" },
+            { "label": { "en": "Every 3 minutes", "zh-Hans": "每 3 分钟" }, "value": "3" },
+            { "label": { "en": "Every 5 minutes", "zh-Hans": "每 5 分钟" }, "value": "5" }
+          ],
+          "default": "3"
+        }
+      ]
+    }
+  ]
+}

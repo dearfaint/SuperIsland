@@ -234,7 +234,7 @@ struct ExtensionsSettingsView: View {
             HStack(spacing: 10) {
                 Button(manager.runtimes[manifest.id] == nil ? "Activate" : "Reload") {
                     if manager.runtimes[manifest.id] == nil {
-                        manager.activate(extensionID: manifest.id)
+                        manager.enableByUser(extensionID: manifest.id)
                     } else {
                         manager.reload(extensionID: manifest.id)
                     }
@@ -535,9 +535,6 @@ private struct LinearOAuthSettingsView: View {
         UserDefaults.standard.removeObject(forKey: Self.oauthStoreKey)
         UserDefaults.standard.synchronize()
 
-        if manager.runtimes[linearMentionsExtensionID] == nil {
-            manager.activate(extensionID: linearMentionsExtensionID)
-        }
         manager.scheduleImmediateRefresh(extensionID: linearMentionsExtensionID)
         reloadSession()
     }
@@ -721,9 +718,6 @@ private struct LastFmOAuthSettingsView: View {
         UserDefaults.standard.removeObject(forKey: Self.oauthStoreKey)
         UserDefaults.standard.synchronize()
 
-        if manager.runtimes[lastFmScrobblerExtensionID] == nil {
-            manager.activate(extensionID: lastFmScrobblerExtensionID)
-        }
         manager.scheduleImmediateRefresh(extensionID: lastFmScrobblerExtensionID)
         reloadSession()
     }

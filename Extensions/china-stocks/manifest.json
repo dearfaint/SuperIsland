@@ -1,0 +1,31 @@
+{
+  "id": "superisland.china-stocks",
+  "name": {
+    "en": "HK + A Stocks",
+    "zh-Hans": "港股与 A 股"
+  },
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "main": "index.js",
+  "author": {
+    "name": "SuperIsland"
+  },
+  "description": {
+    "en": "Watch Hong Kong and China A-share quotes through non-mainland market-data endpoints.",
+    "zh-Hans": "通过非大陆行情接口查看港股与 A 股报价。"
+  },
+  "icon": "icon.svg",
+  "license": "MIT",
+  "categories": ["finance"],
+  "permissions": ["storage", "network"],
+  "capabilities": {
+    "compact": true,
+    "expanded": true,
+    "fullExpanded": true,
+    "minimalCompact": true,
+    "backgroundRefresh": true,
+    "settings": true
+  },
+  "refreshInterval": 1.0,
+  "activationTriggers": ["manual", "timer"]
+}

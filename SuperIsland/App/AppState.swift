@@ -346,6 +346,14 @@ final class AppState: ObservableObject {
         )
     }
 
+    /// Collapsing must not overshoot the compact notch bounds, otherwise the
+    /// physical notch can briefly show below the island surface.
+    var notchDismissAnimation: Animation {
+        shouldReduceMotion
+            ? .easeOut(duration: 0.14)
+            : .easeOut(duration: 0.28 / max(0.5, animationSpeed))
+    }
+
     var contentSwapAnimation: Animation {
         shouldReduceMotion
             ? .easeOut(duration: 0.12)
@@ -534,7 +542,7 @@ final class AppState: ObservableObject {
         cancelFullExpandedDismiss()
         cancelHoverActivation()
         endSystemEmojiInteraction()
-        withAnimation(notchAnimation) {
+        withAnimation(notchDismissAnimation) {
             currentState = .compact
         }
     }
@@ -606,9 +614,7 @@ final class AppState: ObservableObject {
     }
 
     func showHUD(module: ActiveModule, autoDismiss: Bool = true, autoDismissDelay: TimeInterval? = nil) {
-        if case .builtIn(let builtIn) = module, !isModuleEnabled(builtIn) {
-            return
-        }
+        guard isActiveModuleAvailable(module) else { return }
 
         if shouldDirectlyOpenNotificationsOnHover(for: module) {
             presentNotificationsFullExpanded()
@@ -881,9 +887,7 @@ final class AppState: ObservableObject {
     }
 
     func setActiveModule(_ module: ActiveModule) {
-        if case .builtIn(let builtIn) = module, !isModuleEnabled(builtIn) {
-            return
-        }
+        guard isActiveModuleAvailable(module) else { return }
         withAnimation(contentSwapAnimation) {
             previousModule = activeModule
             activeModule = module
@@ -922,6 +926,26 @@ final class AppState: ObservableObject {
         case .weather: return weatherEnabled
         case .notifications: return notificationsEnabled
         case .teleprompter: return teleprompterEnabled
+        }
+    }
+
+    func reconcileActiveModuleAvailability() {
+        if case .module(let selectedModule) = fullExpandedSelectedTab,
+           !isActiveModuleAvailable(selectedModule) {
+            fullExpandedSelectedTab = .home
+        }
+
+        guard let activeModule, !isActiveModuleAvailable(activeModule) else { return }
+        previousModule = activeModule
+        self.activeModule = availableModules.first
+    }
+
+    private func isActiveModuleAvailable(_ module: ActiveModule) -> Bool {
+        switch module {
+        case .builtIn(let builtIn):
+            return isModuleEnabled(builtIn)
+        case .extension_(let extensionID):
+            return ExtensionManager.shared.runtimes[extensionID] != nil
         }
     }
 

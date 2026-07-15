@@ -433,6 +433,14 @@ final class ExtensionJSRuntime {
             return JSValue(object: payload ?? NSNull(), in: self.context)
         }
 
+        let getComputerStatus: @convention(block) () -> JSValue? = { [weak self] in
+            guard let self else { return nil }
+            guard self.manifest.permissions.contains("system") else {
+                return JSValue(nullIn: self.context)
+            }
+            return JSValue(object: ComputerStatusProvider.shared.snapshot(), in: self.context)
+        }
+
         let getLatestNotification: @convention(block) () -> JSValue? = { [weak self] in
             guard let self else { return nil }
             guard self.manifest.permissions.contains("notifications") else {
@@ -555,6 +563,7 @@ final class ExtensionJSRuntime {
 
         system.setObject(getAIUsage, forKeyedSubscript: "getAIUsage" as NSString)
         system.setObject(getNowPlaying, forKeyedSubscript: "getNowPlaying" as NSString)
+        system.setObject(getComputerStatus, forKeyedSubscript: "getComputerStatus" as NSString)
         system.setObject(getLatestNotification, forKeyedSubscript: "getLatestNotification" as NSString)
         system.setObject(getRecentNotifications, forKeyedSubscript: "getRecentNotifications" as NSString)
         system.setObject(getWhatsAppWeb, forKeyedSubscript: "getWhatsAppWeb" as NSString)

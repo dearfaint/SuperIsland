@@ -11,6 +11,8 @@
 
 - [x] Add a localization contract for bundled JavaScript extension metadata, settings, and runtime UI.
 - [x] Add focused localization regression tests for representative native screens and formatter output.
+- [x] Add a bundled Computer Status extension with read-only aggregate Mac health metrics, including fan RPM.
+- [x] Add a bundled HK + A Stocks extension that avoids mainland quote endpoints.
 
 ## Proposed - Requires Product Decisions
 

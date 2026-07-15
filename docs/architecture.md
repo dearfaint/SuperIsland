@@ -17,8 +17,9 @@ The application is primarily coordinated through `AppState` and feature-specific
 - Aptabase receives application analytics.
 - GitHub Releases supplies update metadata and DMG downloads.
 - Open-Meteo supplies weather and air-quality data.
-- Linear, Last.fm, WhatsApp Web, ESPN, Anthropic, and ChatGPT APIs are used by optional extensions or providers.
+- Linear, Last.fm, WhatsApp Web, ESPN, Anthropic, ChatGPT, TradingView, and Yahoo Finance APIs are used by optional extensions or providers.
 - The Now Playing module uses AppleScript and the private macOS MediaRemote framework, which prevents a conventional Mac App Store distribution path.
+- The bundled Computer Status extension uses the host's `system` permission and a native read-only provider for aggregate whole-machine CPU, Activity Monitor-style memory, disk, fan, power, and thermal metrics. On Apple Silicon it reads de-duplicated PMU die sensors through in-process IOKit HID access and reports the hottest valid SoC value; other systems fall back to `ProcessInfo.thermalState`. Fan status reads count and RPM values through AppleSMC without exposing or performing SMC writes.
 
 ## Technical decisions
 
@@ -26,4 +27,5 @@ The application is primarily coordinated through `AppState` and feature-specific
 - English remains the source and fallback language. Native UI strings use `SuperIsland/Resources/Localizable.xcstrings`; permission descriptions use `SuperIsland/Resources/InfoPlist.xcstrings`; both provide `zh-Hans` translations.
 - Native application localization and JavaScript extension localization are separate layers because extension content is generated at runtime outside SwiftUI's localization lookup.
 - JavaScript extension user-facing strings may remain plain English strings or use locale maps such as `{ "en": "Settings", "zh-Hans": "设置" }`; the host resolves the best current locale and falls back to English.
+- The bundled HK + A Stocks extension intentionally uses non-mainland quote endpoints. TradingView scanner is the primary source for HKEX, SSE, and SZSE symbols; Yahoo Finance quote data is a fallback for `.HK`, `.SS`, and `.SZ` tickers. It does not call Sina, Eastmoney, Tencent Finance, Xueqiu, or other mainland quote endpoints.
 - Distribution identity and external service ownership remain unchanged until the replacement bundle ID, update repository, analytics policy, and OAuth endpoints are explicitly confirmed.

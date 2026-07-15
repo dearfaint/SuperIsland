@@ -145,6 +145,7 @@ final class ExtensionManager: ObservableObject {
 
     private static let userDisabledExtensionsKey = "extensions.userDisabled"
     private static let seenExtensionsKey = "extensions.seenIDs"
+    private static let defaultEnabledRepairKey = "extensions.defaultEnabledRepair.v2"
 
     private func userDisabledIDs() -> Set<String> {
         let array = UserDefaults.standard.stringArray(forKey: Self.userDisabledExtensionsKey) ?? []
@@ -165,16 +166,24 @@ final class ExtensionManager: ObservableObject {
         ids.insert(extensionID)
         persistUserDisabledIDs(ids)
         deactivate(extensionID: extensionID)
+        AppState.shared.reconcileActiveModuleAvailability()
+    }
+
+    func enableByUser(extensionID: String) {
+        var ids = userDisabledIDs()
+        if ids.remove(extensionID) != nil {
+            persistUserDisabledIDs(ids)
+        }
+        activate(extensionID: extensionID)
     }
 
     /// Tracks which extension IDs the host has already seen.
     ///
-    /// Used to default-disable extensions that ship in a new version. The very
+    /// Used to honor `defaultEnabled` for extensions that ship in a new version. The very
     /// first run with this code path has no key yet; that case seeds the set
     /// with whatever is currently installed *without* touching userDisabled, so
-    /// upgrading users keep their existing extensions running. Any extension
-    /// that appears in a later update is genuinely new and lands in
-    /// userDisabled until the user opts in via Settings.
+    /// upgrading users keep their existing extensions running. Newly discovered
+    /// extensions are disabled only when their manifest explicitly opts out.
     private func registerNewlyDiscoveredExtensions() {
         let installedIDs = Set(installed.map(\.id))
         let optOutIDs = Set(installed.filter { !$0.defaultEnabled }.map(\.id))
@@ -196,11 +205,12 @@ final class ExtensionManager: ObservableObject {
 
         let seen = Set(storedSeen)
         let newIDs = installedIDs.subtracting(seen)
-        if !newIDs.isEmpty {
+        let newOptOutIDs = newIDs.intersection(optOutIDs)
+        if !newOptOutIDs.isEmpty {
             var disabled = userDisabledIDs()
-            for id in newIDs {
+            for id in newOptOutIDs {
                 disabled.insert(id)
-                ExtensionLogger.shared.log(id, .info, "New extension discovered; defaulting to disabled until user opts in.")
+                ExtensionLogger.shared.log(id, .info, "New extension discovered with defaultEnabled=false; leaving disabled until user opts in.")
             }
             persistUserDisabledIDs(disabled)
         }
@@ -211,8 +221,27 @@ final class ExtensionManager: ObservableObject {
         }
     }
 
+    private func repairDefaultEnabledExtensionsDisabledByDiscovery() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: Self.defaultEnabledRepairKey) == nil else { return }
+
+        let defaultEnabledIDs = Set(installed.filter(\.defaultEnabled).map(\.id))
+        let disabledIDs = userDisabledIDs()
+        let incorrectlyDisabledIDs = disabledIDs.intersection(defaultEnabledIDs)
+
+        if !incorrectlyDisabledIDs.isEmpty {
+            persistUserDisabledIDs(disabledIDs.subtracting(incorrectlyDisabledIDs))
+            for id in incorrectlyDisabledIDs.sorted() {
+                ExtensionLogger.shared.log(id, .info, "Re-enabled default-enabled extension previously disabled by discovery migration.")
+            }
+        }
+
+        defaults.set(true, forKey: Self.defaultEnabledRepairKey)
+    }
+
     func activateDiscoveredExtensions() {
         registerNewlyDiscoveredExtensions()
+        repairDefaultEnabledExtensionsDisabledByDiscovery()
         let disabled = userDisabledIDs()
         for manifest in installed where !disabled.contains(manifest.id) {
             activate(extensionID: manifest.id)
@@ -220,12 +249,7 @@ final class ExtensionManager: ObservableObject {
     }
 
     func activate(extensionID: String) {
-        // When a user explicitly activates an extension, clear any persisted disabled state.
-        var ids = userDisabledIDs()
-        if ids.remove(extensionID) != nil {
-            persistUserDisabledIDs(ids)
-        }
-
+        guard !isUserDisabled(extensionID: extensionID) else { return }
         guard runtimes[extensionID] == nil else { return }
         guard let manifest = installed.first(where: { $0.id == extensionID }) else { return }
 
@@ -333,6 +357,7 @@ final class ExtensionManager: ObservableObject {
         if runtimes[extensionID] == nil {
             activate(extensionID: extensionID)
         }
+        guard runtimes[extensionID] != nil else { return }
 
         presentedInteractionContexts[extensionID] = PresentedInteractionContext(returnModule: returnModule)
         AppState.shared.showHUD(module: .extension_(extensionID), autoDismiss: false)

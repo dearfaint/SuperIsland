@@ -127,6 +127,7 @@ Supported permissions currently:
 - `network` — make requests through `SuperIsland.http.fetch()`
 - `media` — read the host app's normalized now-playing snapshot through `SuperIsland.system.getNowPlaying()`
 - `usage` — read local Codex and Claude usage summaries through `SuperIsland.system.getAIUsage()`
+- `system` — read aggregate CPU, memory, disk, power, SoC temperature, fan RPM, and thermal status through `SuperIsland.system.getComputerStatus()`
 
 `capabilities.notificationFeed`:
 - When `true`, the extension is not shown as a separate module in island cycling.

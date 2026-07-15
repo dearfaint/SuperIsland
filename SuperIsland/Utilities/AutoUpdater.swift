@@ -59,7 +59,9 @@ final class AutoUpdater: ObservableObject {
 
         return try await withCheckedThrowingContinuation { continuation in
             let task = URLSession.shared.downloadTask(with: url) { [weak self] tempURL, _, error in
-                self?.progressObservation = nil
+                Task { @MainActor [weak self] in
+                    self?.progressObservation = nil
+                }
                 if let error {
                     continuation.resume(throwing: error)
                     return

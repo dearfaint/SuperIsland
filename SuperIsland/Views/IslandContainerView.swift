@@ -51,23 +51,22 @@ struct IslandContainerView: View {
                         endPoint: .bottom
                     )
                 )
+                .shadow(
+                    color: .black.opacity(ambientShadowOpacity),
+                    radius: ambientShadowRadius,
+                    y: ambientShadowYOffset
+                )
+                .shadow(
+                    color: .black.opacity(keyShadowOpacity),
+                    radius: keyShadowRadius,
+                    y: keyShadowYOffset
+                )
 
             islandContent
                 .frame(width: surfaceSize.width, height: surfaceSize.height, alignment: .top)
+                .clipShape(islandShape)
         }
         .frame(width: surfaceSize.width, height: surfaceSize.height)
-        .clipShape(islandShape)
-        .compositingGroup()
-        .shadow(
-            color: .black.opacity(ambientShadowOpacity),
-            radius: ambientShadowRadius,
-            y: ambientShadowYOffset
-        )
-        .shadow(
-            color: .black.opacity(keyShadowOpacity),
-            radius: keyShadowRadius,
-            y: keyShadowYOffset
-        )
         .overlay {
             if appState.shelfEnabled && isShelfDropTargeted {
                 islandShape
@@ -244,9 +243,7 @@ struct IslandContainerView: View {
         guard velocity > 35 || abs(horizontal) > 14 || abs(vertical) > 18 else { return }
 
         if abs(horizontal) > abs(vertical) {
-            if appState.currentState != .compact {
-                handleHorizontalSwipe(horizontal > 0 ? .right : .left)
-            }
+            handleHorizontalSwipe(horizontal > 0 ? .right : .left)
         } else {
             if vertical < 0 {
                 if appState.currentState != .fullExpanded {

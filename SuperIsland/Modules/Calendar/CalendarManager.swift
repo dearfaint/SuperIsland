@@ -3,6 +3,11 @@ import Foundation
 import Combine
 import CoreGraphics
 
+private struct CalendarEventQuery: @unchecked Sendable {
+    let store: EKEventStore
+    let predicate: NSPredicate
+}
+
 private extension Int {
     var nonZero: Int? { self == 0 ? nil : self }
 }
@@ -214,10 +219,10 @@ final class CalendarManager: ObservableObject {
         let startOfDay = cal.startOfDay(for: Date())
         let endOfDay = cal.date(byAdding: .day, value: 1, to: startOfDay)!
         let predicate = store.predicateForEvents(withStart: startOfDay, end: endOfDay, calendars: nil)
-        let storeRef = store
+        let query = CalendarEventQuery(store: store, predicate: predicate)
 
         calendarQueue.async { [weak self] in
-            let events = storeRef.events(matching: predicate).sorted { $0.startDate < $1.startDate }
+            let events = query.store.events(matching: query.predicate).sorted { $0.startDate < $1.startDate }
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 let visibleEvents = self.visibleEvents(from: events)
@@ -365,10 +370,10 @@ final class CalendarManager: ObservableObject {
         let startOfDay = cal.startOfDay(for: selectedDate)
         let endOfDay = cal.date(byAdding: .day, value: 1, to: startOfDay)!
         let predicate = store.predicateForEvents(withStart: startOfDay, end: endOfDay, calendars: nil)
-        let storeRef = store
+        let query = CalendarEventQuery(store: store, predicate: predicate)
 
         calendarQueue.async { [weak self] in
-            let events = storeRef.events(matching: predicate).sorted { $0.startDate < $1.startDate }
+            let events = query.store.events(matching: query.predicate).sorted { $0.startDate < $1.startDate }
             DispatchQueue.main.async { [weak self] in
                 self?.selectedDateEvents = self?.visibleEvents(from: events) ?? []
             }
@@ -381,10 +386,10 @@ final class CalendarManager: ObservableObject {
         let tomorrow = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: Date()))!
         let weekEnd = cal.date(byAdding: .day, value: lookaheadDays, to: tomorrow)!
         let predicate = store.predicateForEvents(withStart: tomorrow, end: weekEnd, calendars: nil)
-        let storeRef = store
+        let query = CalendarEventQuery(store: store, predicate: predicate)
 
         calendarQueue.async { [weak self] in
-            let allEvents = storeRef.events(matching: predicate).sorted { $0.startDate < $1.startDate }
+            let allEvents = query.store.events(matching: query.predicate).sorted { $0.startDate < $1.startDate }
 
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
@@ -427,10 +432,10 @@ final class CalendarManager: ObservableObject {
         let rangeStart = cal.date(byAdding: .day, value: -14, to: displayedMonthStart)!
         let rangeEnd = cal.date(byAdding: .day, value: 49, to: displayedMonthStart)!
         let predicate = store.predicateForEvents(withStart: rangeStart, end: rangeEnd, calendars: nil)
-        let storeRef = store
+        let query = CalendarEventQuery(store: store, predicate: predicate)
 
         calendarQueue.async { [weak self] in
-            let events = storeRef.events(matching: predicate)
+            let events = query.store.events(matching: query.predicate)
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 var dates = Set<Date>()

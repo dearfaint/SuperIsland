@@ -245,7 +245,7 @@ struct OnboardingView: View {
         let manager = ExtensionManager.shared
         manager.discoverExtensions()
         for ext in OnboardingExtensionInfo.available where enabledExtensions.contains(ext.id) {
-            manager.activate(extensionID: ext.id)
+            manager.enableByUser(extensionID: ext.id)
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {

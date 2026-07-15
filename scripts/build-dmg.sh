@@ -26,7 +26,8 @@ xcodebuild build \
   -configuration Release \
   -derivedDataPath "${DERIVED_DATA}" \
   -destination "platform=macOS,arch=arm64" \
-  ONLY_ACTIVE_ARCH=NO
+  ARCHS=arm64 \
+  ONLY_ACTIVE_ARCH=YES
 
 echo "==> Copying app bundle..."
 BUILT_APP=$(find "${DERIVED_DATA}" -name "${APP_NAME}.app" -type d | head -1)
@@ -52,14 +53,18 @@ echo "==> Code signing for local testing..."
 CERT=$(security find-identity -v -p codesigning 2>/dev/null \
   | grep -E "Apple Development|Developer ID Application" \
   | head -1 \
-  | awk -F'"' '{print $2}')
+  | awk -F'"' '{print $2}' \
+  || true)
 if [ -n "${CERT}" ]; then
   codesign --deep --force --sign "${CERT}" \
     --entitlements "SuperIsland/SuperIsland.entitlements" \
     "${APP_PATH}"
   echo "   Signed with: ${CERT}"
 else
-  echo "   Warning: no signing certificate found — TCC permissions (Calendar, etc.) won't register."
+  codesign --deep --force --sign - \
+    --entitlements "SuperIsland/SuperIsland.entitlements" \
+    "${APP_PATH}"
+  echo "   Ad-hoc signed (no signing certificate found)."
 fi
 
 echo "==> Preparing DMG contents..."

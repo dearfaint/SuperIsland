@@ -181,8 +181,8 @@ final class VolumeManager: ObservableObject {
     }
 
     private func updateDeviceName() {
-        var name: CFString = "" as CFString
-        var size = UInt32(MemoryLayout<CFString>.size)
+        var name: Unmanaged<CFString>?
+        var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyDeviceNameCFString,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -193,8 +193,8 @@ final class VolumeManager: ObservableObject {
             defaultDeviceID, &address, 0, nil, &size, &name
         )
 
-        if status == noErr {
-            outputDeviceName = name as String
+        if status == noErr, let name {
+            outputDeviceName = name.takeUnretainedValue() as String
         }
     }
 

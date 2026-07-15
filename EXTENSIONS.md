@@ -59,6 +59,7 @@ Drop your extension folder into `Extensions/` and it will be discovered automati
 | `storage` | `SuperIsland.store` key-value persistence |
 | `network` | `SuperIsland.http.fetch()` |
 | `media` | `SuperIsland.system.getNowPlaying()` |
+| `system` | `SuperIsland.system.getComputerStatus()` |
 | `notifications` | Send macOS notifications |
 
 **Capabilities**

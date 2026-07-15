@@ -1,5 +1,6 @@
 name: SuperIsland
 options:
+  xcodeVersion: "26.6"
   bundleIdPrefix: com.workview
   developmentLanguage: en
   deploymentTarget:
@@ -71,7 +72,7 @@ targets:
               --outfile="${WA_PROVIDER}/bundle.cjs" 2>&1 && echo "esbuild: done" || echo "esbuild: failed (will use index.mjs)"
           fi
 
-          for ext in ai-usage pomodoro whatsapp-web agents-status linear-mentions lastfm-scrobbler live-football; do
+          for ext in ai-usage pomodoro whatsapp-web agents-status linear-mentions lastfm-scrobbler live-football computer-status china-stocks; do
             SRC="${SRCROOT}/Extensions/${ext}"
             if [ -d "$SRC" ]; then
               rsync -a --delete \
