@@ -5,14 +5,18 @@
 <h1 align="center">SuperIsland</h1>
 
 <p align="center">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文说明</a>
+</p>
+
+<p align="center">
   Transform your Mac's notch into a live, interactive island.<br />
-  Now Playing · Battery · Weather · Calendar · Notifications · Extensions
+  Now Playing · Battery · Weather · Calendar · Notifications · HK/A Stocks · Computer Status · Extensions
 </p>
 
 <p align="center">
   <a href="https://dynamicisland.app">Website</a> ·
   <a href="https://dynamicisland.app/docs">Docs</a> ·
-  <a href="https://github.com/shobhit99/superisland/releases">Releases</a>
+  <a href="https://github.com/dearfaint/SuperIsland/releases">Releases</a>
 </p>
 
 ---
@@ -23,6 +27,21 @@
 - Xcode 15+
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) — `brew install xcodegen`
 - Node.js 18+ and pnpm (only needed to work on extensions)
+
+---
+
+## Current feature set
+
+This repository includes the original SuperIsland modules plus the following additions and fixes:
+
+- English and Simplified Chinese native UI, including localized permissions, dates, times, numbers, and measurements.
+- A bundled **HK + A Stocks** extension using TradingView scanner endpoints with Yahoo Finance fallback. It accepts HKEX, SSE, and SZSE symbol formats without calling mainland quote providers. Hong Kong quotes may be delayed by about 15 minutes.
+- A bundled **Computer Status** extension with aggregate CPU, Activity Monitor-style memory, disk, Apple Silicon SoC temperature, fan RPM, power, uptime, and thermal status.
+- Restored compact module cycling and stable compact layouts for stocks and computer status.
+- A single extension activation source of truth in **Settings -> Extensions**, so stopped extensions no longer remain enabled in the menu-bar Modules submenu.
+- An arm64 local DMG build path with matching app and Node architectures plus certificate-free ad-hoc signing for local testing.
+
+For installation, usage, data-source details, and troubleshooting, read the [Simplified Chinese guide](README.zh-CN.md).
 
 ---
 
@@ -41,17 +60,19 @@ Select the `SuperIsland` scheme, choose your Mac as the destination, and hit Run
 
 ## Localization
 
-The native app supports English and Simplified Chinese (`zh-Hans`) and follows the macOS app language setting. English is the fallback language. Text supplied at runtime by JavaScript extensions remains owned by each extension until the extension localization contract is added.
+The native app supports English and Simplified Chinese (`zh-Hans`) and follows the macOS app language setting. English is the fallback language. JavaScript extensions can provide localized manifest metadata, settings fields, and runtime view text through locale maps.
 
 ---
 
 ## Building a DMG
 
-For a quick unsigned local build:
+For a quick local test build:
 
 ```bash
 ./scripts/build-dmg.sh
 ```
+
+The local arm64 DMG is ad-hoc signed when no Apple development certificate is installed. It is suitable for local testing but is not a notarized public distribution build.
 
 For a signed release, use a Developer ID certificate and notarization credentials. Copy `.env.template` to `.env` and fill in:
 

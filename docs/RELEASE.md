@@ -4,21 +4,21 @@ This checklist separates local contributor builds from signed maintainer release
 
 We ship two DMGs per release — one per Mac architecture. The two build paths are kept as separate, self-contained scripts (no shared helpers) so each is easy to debug in isolation.
 
-| Arch     | Local (unsigned)                   | Signed + notarized                          | DMG output                              |
+| Arch     | Local test build                   | Signed + notarized                          | DMG output                              |
 |----------|------------------------------------|---------------------------------------------|-----------------------------------------|
 | arm64    | `./scripts/build-dmg.sh`           | `./scripts/build-and-release.sh`            | `build/SuperIsland.dmg`                 |
 | x86_64   | `./scripts/build-dmg-intel.sh`     | `./scripts/build-and-release-intel.sh`      | `build-intel/SuperIsland-x86_64.dmg`    |
 
 The two scripts in each row use separate build directories (`build/` and `build-intel/`) so they can be run independently without clobbering each other.
 
-## Local unsigned DMG
+## Local test DMG
 
 ```bash
 ./scripts/build-dmg.sh         # arm64 → build/SuperIsland.dmg
 ./scripts/build-dmg-intel.sh   # x86_64 → build-intel/SuperIsland-x86_64.dmg
 ```
 
-Each script builds a single-arch Release app, bundles the matching Node.js runtime, creates the DMG, and signs with a local development certificate when one is available.
+Each script builds a single-arch Release app, bundles the matching Node.js runtime, creates the DMG, and signs with a local development certificate when one is available. Without a certificate, the arm64 script applies an ad-hoc signature after bundling Node so the application remains structurally valid for local testing; that output is not notarized.
 
 ## Signed release DMG
 
