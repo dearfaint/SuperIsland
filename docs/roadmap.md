@@ -6,6 +6,7 @@
 - [x] Localize system permission descriptions and locale-sensitive dates, times, numbers, and units.
 - [x] Fix confirmed extension packaging and package-manager documentation drift.
 - [x] Verify the generated Xcode project and macOS build.
+- [x] Restore Shelf staging for Finder text, source-code, and JSON files without regressing existing file types.
 
 ## Approved Next
 

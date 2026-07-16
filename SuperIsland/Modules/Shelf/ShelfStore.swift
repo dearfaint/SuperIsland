@@ -301,7 +301,9 @@ final class ShelfStore: ObservableObject {
         .image,
         .utf8PlainText,
         .plainText,
-        .text
+        .text,
+        .sourceCode,
+        .json
     ]
 
     @Published private(set) var items: [ShelfItem]
@@ -375,14 +377,14 @@ final class ShelfStore: ObservableObject {
     }
 
     func remove(_ item: ShelfItem) {
-        removeManagedImages(for: [item])
+        removeManagedFiles(for: [item])
         items.removeAll { $0.id == item.id }
         persist()
     }
 
     func clear() {
         guard !items.isEmpty else { return }
-        removeManagedImages(for: items)
+        removeManagedFiles(for: items)
         items.removeAll()
         persist()
     }
@@ -390,7 +392,7 @@ final class ShelfStore: ObservableObject {
     func clearUnpinned() {
         let removedItems = items.filter { !$0.isPinned }
         guard !removedItems.isEmpty else { return }
-        removeManagedImages(for: removedItems)
+        removeManagedFiles(for: removedItems)
         items.removeAll { !$0.isPinned }
         persist()
     }
@@ -586,25 +588,26 @@ final class ShelfStore: ObservableObject {
         let cutoff = Date().addingTimeInterval(TimeInterval(-retentionDays * 24 * 60 * 60))
         let removedItems = items.filter { !$0.isPinned && $0.addedAt < cutoff }
         guard !removedItems.isEmpty else { return }
-        removeManagedImages(for: removedItems)
+        removeManagedFiles(for: removedItems)
         items.removeAll { !$0.isPinned && $0.addedAt < cutoff }
         persist()
     }
 
-    private func removeManagedImages(for items: [ShelfItem]) {
+    private func removeManagedFiles(for items: [ShelfItem]) {
         for item in items {
-            guard item.kind == .image,
-                  let url = item.resolvedFileURL,
-                  isManagedImageURL(url) else { continue }
+            guard let url = item.resolvedFileURL,
+                  isManagedFileURL(url) else { continue }
             try? FileManager.default.removeItem(at: url)
         }
     }
 
-    private func isManagedImageURL(_ url: URL) -> Bool {
-        guard let storageURL = Self.imageStorageURL else { return false }
-        let storagePath = storageURL.standardizedFileURL.path
+    private func isManagedFileURL(_ url: URL) -> Bool {
         let itemPath = url.standardizedFileURL.path
-        return itemPath == storagePath || itemPath.hasPrefix(storagePath + "/")
+        return [Self.imageStorageURL, Self.fileStorageURL].contains { storageURL in
+            guard let storageURL else { return false }
+            let storagePath = storageURL.standardizedFileURL.path
+            return itemPath == storagePath || itemPath.hasPrefix(storagePath + "/")
+        }
     }
 
     private func shareViaAirDrop(rawItems: [Any]) {
@@ -656,10 +659,25 @@ final class ShelfStore: ObservableObject {
             guard let type = UTType(identifier) else { return false }
             return type.conforms(to: .image)
         }) {
-            if let url = await loadPromisedFile(from: provider, typeIdentifier: imageTypeIdentifier) {
+            if let url = await loadPromisedFile(
+                from: provider,
+                typeIdentifier: imageTypeIdentifier,
+                storageURL: imageStorageURL
+            ) {
                 NSLog("[Shelf] promised-image branch → %@", url.lastPathComponent)
                 return .file(from: url)
             }
+        }
+
+        if let fileTypeIdentifier = provider.registeredTypeIdentifiers.first(where: isPromisedFileType),
+           let url = await loadPromisedFile(
+               from: provider,
+               typeIdentifier: fileTypeIdentifier,
+               storageURL: fileStorageURL,
+               requiresFilenameExtension: true
+           ) {
+            NSLog("[Shelf] promised-file branch → %@", url.lastPathComponent)
+            return .file(from: url)
         }
 
         if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier),
@@ -726,6 +744,23 @@ final class ShelfStore: ObservableObject {
             .first?
             .appendingPathComponent("SuperIsland", isDirectory: true)
             .appendingPathComponent("ShelfImages", isDirectory: true)
+    }
+
+    nonisolated private static var fileStorageURL: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first?
+            .appendingPathComponent("SuperIsland", isDirectory: true)
+            .appendingPathComponent("ShelfFiles", isDirectory: true)
+    }
+
+    private static func isPromisedFileType(_ identifier: String) -> Bool {
+        guard let type = UTType(identifier),
+              type != .fileURL,
+              type != .url,
+              !type.conforms(to: .image) else {
+            return false
+        }
+        return type.conforms(to: .content) || type.conforms(to: .data)
     }
 
     private static func recognizedURL(from string: String) -> URL? {
@@ -803,7 +838,12 @@ final class ShelfStore: ObservableObject {
     /// system delivers the file via a temp URL whose lastPathComponent is
     /// the original name. We copy it into our shelf storage so it survives
     /// past the closure's lifetime.
-    private static func loadPromisedFile(from provider: NSItemProvider, typeIdentifier: String) async -> URL? {
+    private static func loadPromisedFile(
+        from provider: NSItemProvider,
+        typeIdentifier: String,
+        storageURL: URL?,
+        requiresFilenameExtension: Bool = false
+    ) async -> URL? {
         await withCheckedContinuation { continuation in
             provider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { tempURL, error in
                 guard let tempURL, error == nil else {
@@ -811,7 +851,12 @@ final class ShelfStore: ObservableObject {
                     return
                 }
 
-                guard let storageURL = imageStorageURL else {
+                guard !requiresFilenameExtension || !tempURL.pathExtension.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                guard let storageURL else {
                     continuation.resume(returning: nil)
                     return
                 }

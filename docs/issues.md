@@ -2,6 +2,13 @@
 
 Record resolved issues with date, symptom, cause, fix, and verification evidence.
 
+## 2026-07-16 - Shelf rejects text, source-code, and JSON files
+
+- Symptom: folders, images, DMG, ZIP, and font files can be staged, while `.txt`, `.py`, `.json`, and related text-based files are ignored.
+- Cause: Finder advertises these files only by content type and without a suggested filename; the fallback path incorrectly required `suggestedName` before loading the file representation.
+- Fix: accept source-code and JSON drop types, load content-typed file representations without relying on `suggestedName`, preserve ordinary dragged text as a text snippet, and manage copied files in Shelf storage.
+- Verification: Swift parsing, XcodeGen generation, the macOS Debug build, and Finder drag tests for `.txt`, `.py`, and `.json` all pass; existing ZIP and TTF drops remain functional.
+
 ## 2026-07-14 - Live Football extension missing from generated app
 
 - Symptom: `Extensions/live-football` existed in the repository but was not copied into the application bundle.

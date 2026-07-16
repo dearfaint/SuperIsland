@@ -21,4 +21,5 @@ This project follows a concise, date-based change log.
 - Cleared the Xcode concurrency, CoreAudio pointer, and generated-project upgrade warnings shown by Xcode 26.
 - Fixed local Apple Silicon DMG packaging so certificate-free builds continue, re-sign the bundled Node runtime, and produce a consistent arm64 application.
 - Expanded the repository homepage with the current custom feature set and added a complete Simplified Chinese installation and usage guide.
+- Fixed Shelf drops for text, source-code, JSON, and other content-typed files that Finder does not advertise as file URLs.
 - Initialized the durable project documentation scaffold.
