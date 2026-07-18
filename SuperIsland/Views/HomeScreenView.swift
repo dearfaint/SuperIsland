@@ -303,6 +303,7 @@ private struct HomeCalendarPanel: View {
 private struct HomeWeatherPanel: View {
     @ObservedObject private var manager = WeatherManager.shared
     @ObservedObject private var appState = AppState.shared
+    @State private var hoveredAlertID: String?
 
     private func formattedTemp(_ celsius: Double) -> String {
         switch appState.temperatureUnit {
@@ -334,9 +335,15 @@ private struct HomeWeatherPanel: View {
                             )
 
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(formattedTemp(manager.weather.temperature))
-                                .font(HomeTypography.temperatureFont)
-                                .foregroundStyle(HomeTypography.primaryText)
+                            HStack(alignment: .center, spacing: 7) {
+                                Text(formattedTemp(manager.weather.temperature))
+                                    .font(HomeTypography.temperatureFont)
+                                    .foregroundStyle(HomeTypography.primaryText)
+
+                                if let alert = manager.weather.alerts.first {
+                                    homeWeatherAlertIcon(alert)
+                                }
+                            }
 
                             Text(manager.weather.condition)
                                 .font(HomeTypography.secondaryFont)
@@ -379,7 +386,41 @@ private struct HomeWeatherPanel: View {
         !manager.weather.locationName.isEmpty ||
         manager.weather.temperature != 0 ||
         manager.weather.temperatureHigh != 0 ||
-        manager.weather.temperatureLow != 0
+        manager.weather.temperatureLow != 0 ||
+        !manager.weather.alerts.isEmpty
+    }
+
+    private func homeWeatherAlertIcon(_ alert: WeatherAlert) -> some View {
+        Image(systemName: "exclamationmark.triangle.fill")
+            .font(.system(size: 10, weight: .semibold))
+            .frame(width: 22, height: 22)
+            .foregroundStyle(Color.orange.opacity(0.95))
+            .background(
+                Circle()
+                    .fill(Color.orange.opacity(0.12))
+            )
+            .overlay(
+                Circle()
+                    .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+            )
+            .onHover { isHovering in
+                hoveredAlertID = isHovering ? alert.id : nil
+            }
+            .popover(isPresented: Binding(
+                get: { hoveredAlertID == alert.id },
+                set: { isPresented in
+                    if !isPresented {
+                        hoveredAlertID = nil
+                    }
+                }
+            )) {
+                alertTooltip(alert)
+            }
+            .accessibilityLabel(alert.title)
+    }
+
+    private func alertTooltip(_ alert: WeatherAlert) -> some View {
+        WeatherAlertTooltipView(alert: alert)
     }
 
     private func weatherStat(title: String, value: String, icon: String, tint: Color) -> some View {

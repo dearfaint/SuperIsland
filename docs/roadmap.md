@@ -7,6 +7,9 @@
 - [x] Fix confirmed extension packaging and package-manager documentation drift.
 - [x] Verify the generated Xcode project and macOS build.
 - [x] Restore Shelf staging for Finder text, source-code, and JSON files without regressing existing file types.
+- [x] Add reviewed local installation and clean uninstall for third-party extension folders.
+- [x] Add Nudge as a standalone installable extension with custom minute delays and selectable alert sounds.
+- [x] Point the in-app update check at the fork's GitHub Releases repository.
 
 ## Approved Next
 
@@ -18,6 +21,6 @@
 ## Proposed - Requires Product Decisions
 
 - [ ] Replace or disable the upstream analytics destination.
-- [ ] Confirm the fork's bundle identifier, URL scheme, update repository, signing identity, and OAuth service ownership.
+- [ ] Confirm the fork's bundle identifier, URL scheme, signing identity, and OAuth service ownership.
 - [ ] Add signature or Team ID verification before automatic update installation.
 - [ ] Confirm application-level redistribution licensing before publishing modified builds.

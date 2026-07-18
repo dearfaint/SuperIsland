@@ -4,6 +4,12 @@ import AppKit
 private let linearMentionsExtensionID = "superisland.linear-mentions"
 private let lastFmScrobblerExtensionID = "superisland.lastfm-scrobbler"
 
+private struct ExtensionOperationAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+}
+
 private enum ExtensionListFilter: String, CaseIterable, Identifiable {
     case all
     case active
@@ -28,6 +34,9 @@ struct ExtensionsSettingsView: View {
     @ObservedObject private var logger = ExtensionLogger.shared
     @State private var selectedExtensionID: String?
     @State private var listFilter: ExtensionListFilter = .all
+    @State private var pendingInstall: PreparedExtensionInstall?
+    @State private var pendingUninstall: ExtensionManifest?
+    @State private var operationAlert: ExtensionOperationAlert?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -55,6 +64,39 @@ struct ExtensionsSettingsView: View {
         .onChange(of: listFilter) { _, _ in
             preserveSelection()
         }
+        .sheet(item: $pendingInstall) { request in
+            ExtensionInstallConfirmationView(
+                manifest: request.manifest,
+                iconImage: extensionIconImage(for: request.manifest),
+                cancel: { cancelInstall(request) },
+                install: { installExtension(request) }
+            )
+        }
+        .confirmationDialog(
+            "Uninstall Extension?",
+            isPresented: uninstallConfirmationPresented,
+            presenting: pendingUninstall
+        ) { manifest in
+            Button("Uninstall", role: .destructive) {
+                uninstallExtension(manifest)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { manifest in
+            Text("Uninstalling \(manifest.name) removes its files and saved data.")
+        }
+        .alert(item: $operationAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+        .onDisappear {
+            if let pendingInstall {
+                manager.discardPreparedInstall(pendingInstall)
+                self.pendingInstall = nil
+            }
+        }
     }
 
     private var filterBar: some View {
@@ -72,6 +114,15 @@ struct ExtensionsSettingsView: View {
             .frame(maxWidth: 320)
 
             Spacer(minLength: 0)
+
+            Button {
+                chooseExtensionFolder()
+            } label: {
+                Label("Install Extension", systemImage: "plus")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
 
             Text("\(filteredManifests.count) shown")
                 .font(.caption)
@@ -247,6 +298,13 @@ struct ExtensionsSettingsView: View {
                     }
                     .buttonStyle(.bordered)
                 }
+
+                if manager.isUserInstalled(manifest) {
+                    Button("Uninstall", role: .destructive) {
+                        pendingUninstall = manifest
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
         }
         .padding(10)
@@ -385,16 +443,77 @@ struct ExtensionsSettingsView: View {
     }
 
     private func extensionSource(for manifest: ExtensionManifest) -> (label: String, color: Color) {
-        if isInstalledExtension(manifest) {
+        if manager.isUserInstalled(manifest) {
             return (String(localized: "Installed"), Color.accentColor)
         }
         return (String(localized: "Bundled"), .secondary)
     }
 
-    private func isInstalledExtension(_ manifest: ExtensionManifest) -> Bool {
-        let installedPath = manager.installedExtensionsDirectory.standardizedFileURL.path
-        let bundlePath = manifest.bundleURL.standardizedFileURL.path
-        return bundlePath == installedPath || bundlePath.hasPrefix(installedPath + "/")
+    private var uninstallConfirmationPresented: Binding<Bool> {
+        Binding(
+            get: { pendingUninstall != nil },
+            set: { isPresented in
+                if !isPresented {
+                    pendingUninstall = nil
+                }
+            }
+        )
+    }
+
+    private func chooseExtensionFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = false
+        panel.prompt = String(localized: "Review Extension")
+        panel.message = String(localized: "Choose an extension folder containing manifest.json and its entry script.")
+
+        guard panel.runModal() == .OK, let sourceURL = panel.url else { return }
+
+        do {
+            pendingInstall = try manager.prepareInstall(from: sourceURL)
+        } catch {
+            operationAlert = ExtensionOperationAlert(
+                title: String(localized: "Installation Failed"),
+                message: error.localizedDescription
+            )
+        }
+    }
+
+    private func cancelInstall(_ request: PreparedExtensionInstall) {
+        manager.discardPreparedInstall(request)
+        pendingInstall = nil
+    }
+
+    private func installExtension(_ request: PreparedExtensionInstall) {
+        do {
+            let manifest = try manager.install(request)
+            manager.enableByUser(extensionID: manifest.id)
+            listFilter = .all
+            selectedExtensionID = manifest.id
+            pendingInstall = nil
+        } catch {
+            pendingInstall = nil
+            operationAlert = ExtensionOperationAlert(
+                title: String(localized: "Installation Failed"),
+                message: error.localizedDescription
+            )
+        }
+    }
+
+    private func uninstallExtension(_ manifest: ExtensionManifest) {
+        pendingUninstall = nil
+        do {
+            try manager.uninstall(extensionID: manifest.id)
+            selectedExtensionID = nil
+            preserveSelection()
+        } catch {
+            operationAlert = ExtensionOperationAlert(
+                title: String(localized: "Uninstall Failed"),
+                message: error.localizedDescription
+            )
+        }
     }
 
     private func preserveSelection() {
@@ -427,6 +546,173 @@ struct ExtensionsSettingsView: View {
         colorScheme == .light
             ? Color(nsColor: .selectedControlColor).opacity(0.20)
             : Color.accentColor.opacity(0.25)
+    }
+}
+
+private struct ExtensionInstallConfirmationView: View {
+    let manifest: ExtensionManifest
+    let iconImage: NSImage?
+    let cancel: () -> Void
+    let install: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 14) {
+                extensionIcon
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Install Extension")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.secondary)
+
+                    Text(manifest.name)
+                        .font(.title2.weight(.semibold))
+                        .foregroundColor(.primary)
+
+                    HStack(spacing: 4) {
+                        Text("Version")
+                        Text(verbatim: manifest.version)
+
+                        if let author = manifest.author?.name
+                            .trimmingCharacters(in: .whitespacesAndNewlines),
+                           !author.isEmpty {
+                            Text(verbatim: "•")
+                            Text("Author")
+                            Text(verbatim: author)
+                        }
+                    }
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+
+                    Text(verbatim: manifest.id)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Extension Purpose")
+                    .font(.headline)
+
+                Text(purposeDescription)
+                    .font(.system(size: 13))
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.accentColor.opacity(0.16), lineWidth: 1)
+            )
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Requested Permissions")
+                    .font(.headline)
+
+                if manifest.permissions.isEmpty {
+                    Text("No additional permissions")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(Array(Set(manifest.permissions)).sorted(), id: \.self) { permission in
+                        HStack(alignment: .top, spacing: 9) {
+                            Image(systemName: "checkmark.shield")
+                                .foregroundColor(.accentColor)
+                                .frame(width: 16)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(permissionTitle(permission))
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text(permissionDescription(permission))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(0.65))
+            )
+
+            Text("Only install extensions from sources you trust.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            HStack {
+                Spacer()
+                Button("Cancel", action: cancel)
+                    .keyboardShortcut(.cancelAction)
+                Button("Install", action: install)
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(22)
+        .frame(width: 480)
+        .interactiveDismissDisabled()
+    }
+
+    @ViewBuilder
+    private var extensionIcon: some View {
+        if let iconImage {
+            Image(nsImage: iconImage)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .stroke(Color.secondary.opacity(0.24), lineWidth: 0.6)
+                )
+        } else {
+            Image(systemName: "puzzlepiece.extension.fill")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(.accentColor)
+                .frame(width: 48, height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.14))
+                )
+        }
+    }
+
+    private var purposeDescription: String {
+        let description = manifest.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        return description.isEmpty
+            ? String(localized: "The developer did not provide a purpose description.")
+            : description
+    }
+
+    private func permissionTitle(_ permission: String) -> String {
+        switch permission {
+        case "storage": return String(localized: "Persistent Storage")
+        case "network": return String(localized: "Network Access")
+        case "notifications": return String(localized: "Notifications Access")
+        case "media": return String(localized: "Now Playing Access")
+        case "system": return String(localized: "Computer Status Access")
+        case "usage": return String(localized: "AI Usage Access")
+        default: return permission
+        }
+    }
+
+    private func permissionDescription(_ permission: String) -> String {
+        switch permission {
+        case "storage": return String(localized: "Save extension data between launches.")
+        case "network": return String(localized: "Connect to internet or local network services.")
+        case "notifications": return String(localized: "Read and send SuperIsland notifications.")
+        case "media": return String(localized: "Read the current Now Playing track.")
+        case "system": return String(localized: "Read aggregate computer health information.")
+        case "usage": return String(localized: "Read local AI service usage information.")
+        default: return permission
+        }
     }
 }
 

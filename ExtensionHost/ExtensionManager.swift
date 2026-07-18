@@ -6,6 +6,48 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import CryptoKit
 
+enum ExtensionInstallationError: LocalizedError {
+    case invalidIdentifier(String)
+    case reservedIdentifier
+    case unsupportedPermissions([String])
+    case incompatibleAppVersion(required: String, current: String)
+    case alreadyInstalled(String)
+    case unsafeResourcePath
+    case preparedExtensionChanged
+    case bundledExtension
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidIdentifier(let identifier):
+            return String(localized: "Extension ID contains unsupported characters: \(identifier)")
+        case .reservedIdentifier:
+            return String(localized: "Third-party extension IDs cannot use the reserved superisland. prefix.")
+        case .unsupportedPermissions(let permissions):
+            return String(localized: "Unsupported extension permissions: \(permissions.joined(separator: ", "))")
+        case .incompatibleAppVersion(let required, let current):
+            return String(localized: "This extension requires SuperIsland \(required) or later. The current version is \(current).")
+        case .alreadyInstalled(let identifier):
+            return String(localized: "An extension with ID \(identifier) is already installed.")
+        case .unsafeResourcePath:
+            return String(localized: "Extension files must stay inside the selected extension folder.")
+        case .preparedExtensionChanged:
+            return String(localized: "The prepared extension changed before installation. Review it again.")
+        case .bundledExtension:
+            return String(localized: "Bundled extensions cannot be uninstalled.")
+        }
+    }
+}
+
+struct PreparedExtensionInstall: Identifiable {
+    let id = UUID()
+    let stagingDirectory: URL
+    let manifest: ExtensionManifest
+
+    var stagingRootDirectory: URL {
+        stagingDirectory.deletingLastPathComponent()
+    }
+}
+
 @MainActor
 final class ExtensionManager: ObservableObject {
     private struct PresentedInteractionContext {
@@ -58,6 +100,9 @@ final class ExtensionManager: ObservableObject {
     private var immediateRefreshWorkItems: [String: DispatchWorkItem] = [:]
     private var presentedInteractionContexts: [String: PresentedInteractionContext] = [:]
     private let fileManager = FileManager.default
+    private static let supportedPermissions: Set<String> = [
+        "storage", "network", "media", "system", "notifications", "usage"
+    ]
 
     private init() {
         let cwd = URL(fileURLWithPath: fileManager.currentDirectoryPath, isDirectory: true)
@@ -305,6 +350,12 @@ final class ExtensionManager: ObservableObject {
         }
     }
 
+    func refreshNotificationSoundPermissions() {
+        for runtime in runtimes.values {
+            runtime.refreshSystemNotificationSoundPermission()
+        }
+    }
+
     func syncRuntimeEnergyState() {
         for manifest in installed {
             guard let runtime = runtimes[manifest.id] else { continue }
@@ -384,28 +435,85 @@ final class ExtensionManager: ObservableObject {
         return true
     }
 
-    func install(from source: URL) throws -> ExtensionManifest {
-        var sourceDirectory = source
-
-        if source.pathExtension.lowercased() == "zip" {
-            throw ExtensionManifest.ManifestError.invalidSource(source)
-        }
-
-        var isDirectory: ObjCBool = false
-        if fileManager.fileExists(atPath: source.path, isDirectory: &isDirectory), isDirectory.boolValue {
-            sourceDirectory = source
-        } else {
-            throw ExtensionManifest.ManifestError.invalidSource(source)
-        }
-
+    func inspectInstallSource(_ source: URL, currentAppVersion: String? = nil) throws -> ExtensionManifest {
+        let sourceDirectory = try validatedSourceDirectory(source)
         let manifest = try ExtensionManifest.load(from: sourceDirectory)
+        try validateThirdPartyManifest(manifest, sourceDirectory: sourceDirectory, currentAppVersion: currentAppVersion)
+
+        let destination = installedExtensionsDirectory.appendingPathComponent(manifest.id, isDirectory: true)
+        guard sourceDirectory != destination.standardizedFileURL else {
+            throw ExtensionInstallationError.alreadyInstalled(manifest.id)
+        }
+
+        guard !installed.contains(where: { $0.id == manifest.id }),
+              !fileManager.fileExists(atPath: destination.path) else {
+            throw ExtensionInstallationError.alreadyInstalled(manifest.id)
+        }
+
+        return manifest
+    }
+
+    func prepareInstall(from source: URL, currentAppVersion: String? = nil) throws -> PreparedExtensionInstall {
+        let sourceDirectory = try validatedSourceDirectory(source)
+
+        let stagingRoot = fileManager.temporaryDirectory
+            .appendingPathComponent("SuperIslandExtensionInstall-\(UUID().uuidString)", isDirectory: true)
+        let stagingDirectory = stagingRoot.appendingPathComponent("Extension", isDirectory: true)
+
+        do {
+            try fileManager.createDirectory(
+                at: stagingRoot,
+                withIntermediateDirectories: true,
+                attributes: [.posixPermissions: 0o700]
+            )
+            try fileManager.copyItem(at: sourceDirectory, to: stagingDirectory)
+            let manifest = try inspectInstallSource(
+                stagingDirectory,
+                currentAppVersion: currentAppVersion
+            )
+            return PreparedExtensionInstall(
+                stagingDirectory: stagingDirectory,
+                manifest: manifest
+            )
+        } catch {
+            try? fileManager.removeItem(at: stagingRoot)
+            throw error
+        }
+    }
+
+    func discardPreparedInstall(_ preparedInstall: PreparedExtensionInstall) {
+        try? fileManager.removeItem(at: preparedInstall.stagingRootDirectory)
+    }
+
+    func install(_ preparedInstall: PreparedExtensionInstall) throws -> ExtensionManifest {
+        defer {
+            discardPreparedInstall(preparedInstall)
+        }
+
+        let currentManifest = try inspectInstallSource(preparedInstall.stagingDirectory)
+        guard currentManifest == preparedInstall.manifest else {
+            throw ExtensionInstallationError.preparedExtensionChanged
+        }
+
+        return try installValidated(
+            manifest: currentManifest,
+            sourceDirectory: preparedInstall.stagingDirectory
+        )
+    }
+
+    func install(from source: URL) throws -> ExtensionManifest {
+        let preparedInstall = try prepareInstall(from: source)
+        return try install(preparedInstall)
+    }
+
+    private func installValidated(
+        manifest: ExtensionManifest,
+        sourceDirectory: URL
+    ) throws -> ExtensionManifest {
         let destination = installedExtensionsDirectory.appendingPathComponent(manifest.id, isDirectory: true)
 
-        if fileManager.fileExists(atPath: destination.path) {
-            try fileManager.removeItem(at: destination)
-        }
-
         try fileManager.copyItem(at: sourceDirectory, to: destination)
+        markExtensionSeen(manifest.id)
 
         discoverExtensions()
         if let installedManifest = installed.first(where: { $0.id == manifest.id }) {
@@ -415,6 +523,11 @@ final class ExtensionManager: ObservableObject {
     }
 
     func uninstall(extensionID: String) throws {
+        guard let manifest = installed.first(where: { $0.id == extensionID }),
+              isUserInstalled(manifest) else {
+            throw ExtensionInstallationError.bundledExtension
+        }
+
         deactivate(extensionID: extensionID)
 
         var ids = userDisabledIDs()
@@ -422,12 +535,99 @@ final class ExtensionManager: ObservableObject {
             persistUserDisabledIDs(ids)
         }
 
-        let installDirectory = installedExtensionsDirectory.appendingPathComponent(extensionID, isDirectory: true)
+        let installDirectory = manifest.bundleURL.standardizedFileURL
         if fileManager.fileExists(atPath: installDirectory.path) {
             try fileManager.removeItem(at: installDirectory)
         }
 
+        Self.removePersistedData(extensionID: extensionID)
+        removeExtensionFromSeen(extensionID)
         discoverExtensions()
+        AppState.shared.reconcileActiveModuleAvailability()
+    }
+
+    func isUserInstalled(_ manifest: ExtensionManifest) -> Bool {
+        Self.isURL(manifest.bundleURL, inside: installedExtensionsDirectory)
+    }
+
+    static func removePersistedData(extensionID: String, defaults: UserDefaults = .standard) {
+        let prefix = "extensions.\(extensionID)."
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(prefix) {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    private func validateThirdPartyManifest(
+        _ manifest: ExtensionManifest,
+        sourceDirectory: URL,
+        currentAppVersion: String?
+    ) throws {
+        let identifierPattern = #"^[A-Za-z0-9][A-Za-z0-9._-]*$"#
+        guard manifest.id.range(of: identifierPattern, options: .regularExpression) != nil else {
+            throw ExtensionInstallationError.invalidIdentifier(manifest.id)
+        }
+        guard !manifest.id.lowercased().hasPrefix("superisland.") else {
+            throw ExtensionInstallationError.reservedIdentifier
+        }
+
+        let unsupportedPermissions = Set(manifest.permissions).subtracting(Self.supportedPermissions).sorted()
+        guard unsupportedPermissions.isEmpty else {
+            throw ExtensionInstallationError.unsupportedPermissions(unsupportedPermissions)
+        }
+
+        guard Self.isURL(manifest.entryURL, inside: sourceDirectory),
+              manifest.iconURL.map({ Self.isURL($0, inside: sourceDirectory) }) ?? true,
+              manifest.settingsURL.map({ Self.isURL($0, inside: sourceDirectory) }) ?? true else {
+            throw ExtensionInstallationError.unsafeResourcePath
+        }
+
+        let installedVersion = currentAppVersion
+            ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? "0"
+        guard installedVersion.compare(manifest.minAppVersion, options: .numeric) != .orderedAscending else {
+            throw ExtensionInstallationError.incompatibleAppVersion(
+                required: manifest.minAppVersion,
+                current: installedVersion
+            )
+        }
+    }
+
+    private func validatedSourceDirectory(_ source: URL) throws -> URL {
+        guard source.pathExtension.lowercased() != "zip" else {
+            throw ExtensionManifest.ManifestError.invalidSource(source)
+        }
+
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: source.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            throw ExtensionManifest.ManifestError.invalidSource(source)
+        }
+
+        let attributes = try fileManager.attributesOfItem(atPath: source.path)
+        guard attributes[.type] as? FileAttributeType != .typeSymbolicLink else {
+            throw ExtensionInstallationError.unsafeResourcePath
+        }
+
+        return source.standardizedFileURL
+    }
+
+    private static func isURL(_ candidate: URL, inside directory: URL) -> Bool {
+        let directoryPath = directory.standardizedFileURL.resolvingSymlinksInPath().path
+        let candidatePath = candidate.standardizedFileURL.resolvingSymlinksInPath().path
+        return candidatePath.hasPrefix(directoryPath + "/")
+    }
+
+    private func markExtensionSeen(_ extensionID: String) {
+        let defaults = UserDefaults.standard
+        var seen = Set(defaults.stringArray(forKey: Self.seenExtensionsKey) ?? [])
+        seen.insert(extensionID)
+        defaults.set(Array(seen), forKey: Self.seenExtensionsKey)
+    }
+
+    private func removeExtensionFromSeen(_ extensionID: String) {
+        let defaults = UserDefaults.standard
+        var seen = Set(defaults.stringArray(forKey: Self.seenExtensionsKey) ?? [])
+        guard seen.remove(extensionID) != nil else { return }
+        defaults.set(Array(seen), forKey: Self.seenExtensionsKey)
     }
 
     private func loadManifests(in directory: URL) -> [ExtensionManifest] {
@@ -530,7 +730,7 @@ private struct PendingWhatsAppProviderCommand {
 @MainActor
 final class WhatsAppWebBridge: ObservableObject {
     static let shared = WhatsAppWebBridge()
-    private static let managedExtensionID = "superisland.whatsapp-web"
+    nonisolated static let managedExtensionID = "superisland.whatsapp-web"
 
     enum ConnectionState: String {
         case idle

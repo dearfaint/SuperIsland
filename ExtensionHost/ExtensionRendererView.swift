@@ -193,7 +193,17 @@ struct ViewNodeRenderer: View {
             .buttonStyle(.plain)
             .hoverPointer()
 
-        case .inputBox(let inputID, let placeholder, let text, let actionID, let autoFocus, let minHeight, let showsEmojiButton):
+        case .inputBox(
+            let inputID,
+            let placeholder,
+            let text,
+            let actionID,
+            let autoFocus,
+            let minHeight,
+            let showsEmojiButton,
+            let compact,
+            let submitLabel
+        ):
             ExtensionInputBoxNode(
                 extensionID: extensionID,
                 inputID: inputID,
@@ -202,7 +212,9 @@ struct ViewNodeRenderer: View {
                 actionID: actionID,
                 autoFocus: autoFocus,
                 minHeight: minHeight,
-                showsEmojiButton: showsEmojiButton
+                showsEmojiButton: showsEmojiButton,
+                compact: compact,
+                submitLabel: submitLabel
             )
             .id(inputID.isEmpty ? "\(extensionID)-\(actionID)" : inputID)
 
@@ -602,21 +614,38 @@ private struct ExtensionInputBoxNode: View {
     let autoFocus: Bool
     let minHeight: Double
     let showsEmojiButton: Bool
+    let compact: Bool
+    let submitLabel: String?
 
     private var boxHeight: CGFloat {
-        CGFloat(max(46, minHeight))
+        CGFloat(max(compact ? 30 : 46, minHeight))
     }
 
     private var boxCornerRadius: CGFloat {
-        appState.currentCornerRadius
+        compact ? 8 : appState.currentCornerRadius
     }
 
     private var textHorizontalInset: CGFloat {
-        12
+        compact ? 8 : 12
+    }
+
+    private var minimumVerticalInset: CGFloat {
+        compact ? 4 : 8
     }
 
     private var textVerticalInset: CGFloat {
-        max(8, floor((boxHeight - Self.inputLineHeight) / 2))
+        max(minimumVerticalInset, floor((boxHeight - Self.inputLineHeight) / 2))
+    }
+
+    private var resolvedSubmitLabel: String? {
+        guard let submitLabel else { return nil }
+        let value = submitLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    private var trailingAccessoryInset: CGFloat {
+        if resolvedSubmitLabel != nil { return 46 }
+        return showsEmojiButton ? 30 : 0
     }
 
     @ObservedObject private var manager = ExtensionManager.shared
@@ -633,7 +662,9 @@ private struct ExtensionInputBoxNode: View {
         actionID: String,
         autoFocus: Bool,
         minHeight: Double,
-        showsEmojiButton: Bool
+        showsEmojiButton: Bool,
+        compact: Bool,
+        submitLabel: String?
     ) {
         self.extensionID = extensionID
         self.inputID = inputID
@@ -643,6 +674,8 @@ private struct ExtensionInputBoxNode: View {
         self.autoFocus = autoFocus
         self.minHeight = minHeight
         self.showsEmojiButton = showsEmojiButton
+        self.compact = compact
+        self.submitLabel = submitLabel
         _localText = State(initialValue: text)
     }
 
@@ -654,18 +687,23 @@ private struct ExtensionInputBoxNode: View {
                 shouldOpenEmojiPicker: $shouldOpenEmojiPicker,
                 fixedHeight: boxHeight,
                 horizontalInset: textHorizontalInset,
-                minimumVerticalInset: 8
+                minimumVerticalInset: minimumVerticalInset
             ) {
                 submit()
             }
-            .padding(.trailing, showsEmojiButton ? 30 : 0)
+            .padding(.trailing, trailingAccessoryInset)
             if localText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(placeholder)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.white.opacity(0.34))
                     .padding(.leading, textHorizontalInset)
                     .padding(.top, textVerticalInset)
-                    .padding(.trailing, showsEmojiButton ? 36 : textHorizontalInset)
+                    .padding(
+                        .trailing,
+                        resolvedSubmitLabel != nil
+                            ? 50
+                            : (showsEmojiButton ? 36 : textHorizontalInset)
+                    )
                     .allowsHitTesting(false)
             }
         }
@@ -680,7 +718,7 @@ private struct ExtensionInputBoxNode: View {
                     .stroke(.white.opacity(0.08), lineWidth: 1)
             )
             .overlay(alignment: .bottomTrailing) {
-                if showsEmojiButton {
+                if showsEmojiButton, resolvedSubmitLabel == nil {
                     Button {
                         shouldFocus = true
                         shouldOpenEmojiPicker = true
@@ -694,6 +732,31 @@ private struct ExtensionInputBoxNode: View {
                     .hoverPointer()
                     .padding(.trailing, 10)
                     .padding(.bottom, 8)
+                }
+            }
+            .overlay(alignment: .trailing) {
+                if let resolvedSubmitLabel {
+                    Button {
+                        submit()
+                    } label: {
+                        Text(resolvedSubmitLabel)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(minWidth: 34, minHeight: max(22, boxHeight - 4))
+                            .background(
+                                Color.accentColor.opacity(0.82),
+                                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .hoverPointer()
+                    .disabled(localText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .opacity(
+                        localText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            ? 0.42
+                            : 1
+                    )
+                    .padding(.trailing, 2)
                 }
             }
             .onChange(of: text) { _, newValue in
@@ -714,7 +777,17 @@ private struct ExtensionInputBoxNode: View {
         guard !trimmed.isEmpty else { return }
         manager.handleAction(extensionID: extensionID, actionID: actionID, value: trimmed)
         localText = ""
-        shouldFocus = true
+        shouldFocus = !compact
+    }
+}
+
+enum ExtensionInputEditingPolicy {
+    static func shouldApplyExternalText(stringsDiffer: Bool, hasMarkedText: Bool) -> Bool {
+        stringsDiffer && !hasMarkedText
+    }
+
+    static func shouldSubmit(isReturn: Bool, hasShift: Bool, hasMarkedText: Bool) -> Bool {
+        isReturn && !hasShift && !hasMarkedText
     }
 }
 
@@ -799,7 +872,10 @@ private struct ExtensionInputTextView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = context.coordinator.textView else { return }
 
-        if textView.string != text {
+        if ExtensionInputEditingPolicy.shouldApplyExternalText(
+            stringsDiffer: textView.string != text,
+            hasMarkedText: textView.hasMarkedText()
+        ) {
             textView.string = text
         }
 
@@ -905,7 +981,11 @@ private final class SubmitAwareTextView: NSTextView {
     override func keyDown(with event: NSEvent) {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let isReturn = event.keyCode == 36 || event.keyCode == 76
-        if isReturn && !modifiers.contains(.shift) {
+        if ExtensionInputEditingPolicy.shouldSubmit(
+            isReturn: isReturn,
+            hasShift: modifiers.contains(.shift),
+            hasMarkedText: hasMarkedText()
+        ) {
             onSubmit?()
             return
         }

@@ -46,6 +46,11 @@ final class LocalizationCatalogTests: XCTestCase {
         XCTAssertEqual(try localizedValue(for: "Weather", in: catalog), "天气")
         XCTAssertEqual(try localizedValue(for: "No events", in: catalog), "没有日程")
         XCTAssertEqual(try localizedValue(for: "Use Low Power mode?", in: catalog), "启用低功耗模式？")
+        XCTAssertEqual(try localizedValue(for: "Extension Purpose", in: catalog), "扩展用途")
+        XCTAssertEqual(
+            try localizedValue(for: "The developer did not provide a purpose description.", in: catalog),
+            "开发者未提供用途说明。"
+        )
 
         let highTempFormat = try localizedValue(for: "H:%@", in: catalog)
         XCTAssertEqual(String(format: highTempFormat, locale: Locale(identifier: "zh-Hans"), "23°C"), "高：23°C")

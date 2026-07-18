@@ -8,6 +8,24 @@ enum TemperatureUnit: String {
     case fahrenheit
 }
 
+enum WeatherDataSource: String, CaseIterable, Identifiable {
+    case auto
+    case qweather
+    case openMeteo
+    case caiyun
+
+    var id: String { rawValue }
+
+    var titleResource: LocalizedStringResource {
+        switch self {
+        case .auto: return "Automatic"
+        case .qweather: return "QWeather"
+        case .openMeteo: return "Open-Meteo"
+        case .caiyun: return "Caiyun Weather"
+        }
+    }
+}
+
 // MARK: - Island State
 enum IslandState: Equatable {
     case compact
@@ -271,6 +289,14 @@ final class AppState: ObservableObject {
     @AppStorage("module.calendar.enabled") var calendarEnabled = true
     @AppStorage("module.weather.enabled") var weatherEnabled = true
     @AppStorage("module.weather.temperatureUnit") var temperatureUnit: TemperatureUnit = .celsius
+    @AppStorage("module.weather.dataSource") var weatherDataSource: WeatherDataSource = .auto
+    @AppStorage("module.weather.qweatherHost") var qweatherHost = ""
+    @AppStorage("module.weather.qweatherCredentialID") var qweatherCredentialID = ""
+    @AppStorage("module.weather.qweatherProjectID") var qweatherProjectID = ""
+    @AppStorage("module.weather.qweatherPrivateKey") var qweatherPrivateKey = ""
+    @AppStorage("module.weather.caiyunAppKey") var caiyunAppKey = ""
+    @AppStorage("module.weather.caiyunAppSecret") var caiyunAppSecret = ""
+    @AppStorage("module.weather.caiyunToken") var caiyunToken = ""
     @AppStorage("module.notifications.enabled") var notificationsEnabled = true
     @AppStorage("module.notifications.showPreviews") var notificationPreviewsEnabled = true
     @AppStorage("module.notifications.maxRetainedItems") var notificationMaxRetainedItems: Double = 10

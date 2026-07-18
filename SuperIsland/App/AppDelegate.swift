@@ -49,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         AppState.shared.setAppActive(true)
+        ExtensionManager.shared.refreshNotificationSoundPermissions()
     }
 
     func applicationDidResignActive(_ notification: Notification) {

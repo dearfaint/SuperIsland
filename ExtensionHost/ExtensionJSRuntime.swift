@@ -3,6 +3,19 @@ import JavaScriptCore
 import AppKit
 @preconcurrency import UserNotifications
 
+enum ExtensionNotificationSoundPolicy {
+    static func normalizedName(_ rawName: String) -> String? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty,
+              name.count <= 128,
+              !name.contains("/"),
+              !name.contains("\\") else {
+            return nil
+        }
+        return name
+    }
+}
+
 final class ExtensionJSRuntime {
     enum RuntimeError: LocalizedError {
         case contextInitializationFailed
@@ -32,6 +45,8 @@ final class ExtensionJSRuntime {
     private var nextTimerID: Int = 1
     private var didActivate = false
     private var timersSuspended = false
+    private var isHandlingUserAction = false
+    private var systemNotificationSoundEnabled = false
 
     private let defaults = UserDefaults.standard
     private var islandActivationModule: ActiveModule {
@@ -175,6 +190,8 @@ final class ExtensionJSRuntime {
             return
         }
 
+        isHandlingUserAction = true
+        defer { isHandlingUserAction = false }
         invokeJS("onAction(\(actionID))") {
             if let value {
                 return callback.call(withArguments: [actionID, value])
@@ -235,6 +252,10 @@ final class ExtensionJSRuntime {
 
         let getValue: @convention(block) (String) -> JSValue? = { [weak self] key in
             guard let self else { return nil }
+            guard self.manifest.permissions.contains("storage") else {
+                self.context.exception = JSValue(newErrorFromMessage: "Permission denied: storage", in: self.context)
+                return JSValue(nullIn: self.context)
+            }
             let namespacedKey = self.storeKey(for: key)
             guard let value = self.defaults.object(forKey: namespacedKey) else {
                 return JSValue(nullIn: self.context)
@@ -244,6 +265,10 @@ final class ExtensionJSRuntime {
 
         let setValue: @convention(block) (String, JSValue) -> Void = { [weak self] key, value in
             guard let self else { return }
+            guard self.manifest.permissions.contains("storage") else {
+                self.context.exception = JSValue(newErrorFromMessage: "Permission denied: storage", in: self.context)
+                return
+            }
             let namespacedKey = self.storeKey(for: key)
             self.save(value: value.toObject(), forKey: namespacedKey)
         }
@@ -307,6 +332,10 @@ final class ExtensionJSRuntime {
 
         let send: @convention(block) (JSValue) -> Void = { [weak self] options in
             guard let self else { return }
+            guard self.manifest.permissions.contains("notifications") else {
+                self.context.exception = JSValue(newErrorFromMessage: "Permission denied: notifications", in: self.context)
+                return
+            }
             let title = self.normalizedText(options.forProperty("title")?.toString()) ?? ""
             let body = self.normalizedText(options.forProperty("body")?.toString()) ?? ""
             let sound = options.forProperty("sound")?.toBool() ?? false
@@ -339,8 +368,68 @@ final class ExtensionJSRuntime {
             }
         }
 
+        let playSound: @convention(block) (String) -> Bool = { [weak self] rawName in
+            guard let self else { return false }
+            guard self.manifest.permissions.contains("notifications") else {
+                self.context.exception = JSValue(newErrorFromMessage: "Permission denied: notifications", in: self.context)
+                return false
+            }
+            guard let soundName = ExtensionNotificationSoundPolicy.normalizedName(rawName) else {
+                return false
+            }
+            guard Thread.isMainThread else { return false }
+            self.refreshSystemNotificationSoundPermission()
+
+            return MainActor.assumeIsolated {
+                guard AppState.shared.notificationsEnabled,
+                      AppState.shared.isNotificationSourceEnabled(.extensions),
+                      self.systemNotificationSoundEnabled else {
+                    return false
+                }
+                return NSSound(named: NSSound.Name(soundName))?.play() ?? false
+            }
+        }
+
+        let previewSound: @convention(block) (String) -> Bool = { [weak self] rawName in
+            guard let self else { return false }
+            guard self.manifest.permissions.contains("notifications") else {
+                self.context.exception = JSValue(newErrorFromMessage: "Permission denied: notifications", in: self.context)
+                return false
+            }
+            guard self.isHandlingUserAction,
+                  let soundName = ExtensionNotificationSoundPolicy.normalizedName(rawName),
+                  Thread.isMainThread else {
+                return false
+            }
+
+            return MainActor.assumeIsolated {
+                NSSound(named: NSSound.Name(soundName))?.play() ?? false
+            }
+        }
+
         notifications.setObject(send, forKeyedSubscript: "send" as NSString)
+        notifications.setObject(playSound, forKeyedSubscript: "playSound" as NSString)
+        notifications.setObject(previewSound, forKeyedSubscript: "previewSound" as NSString)
         superIsland.setObject(notifications, forKeyedSubscript: "notifications" as NSString)
+        refreshSystemNotificationSoundPermission()
+    }
+
+    func refreshSystemNotificationSoundPermission() {
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            let authorized: Bool
+            switch settings.authorizationStatus {
+            case .authorized, .provisional, .ephemeral:
+                authorized = true
+            case .notDetermined, .denied:
+                authorized = false
+            @unknown default:
+                authorized = false
+            }
+            let soundEnabled = authorized && settings.soundSetting == .enabled
+            DispatchQueue.main.async {
+                self?.systemNotificationSoundEnabled = soundEnabled
+            }
+        }
     }
 
     private func injectHTTP(into superIsland: JSValue) {
@@ -482,7 +571,8 @@ final class ExtensionJSRuntime {
 
         let getWhatsAppWeb: @convention(block) (JSValue?) -> JSValue? = { [weak self] limitArg in
             guard let self else { return JSValue(nullIn: JSContext.current()) }
-            guard self.manifest.permissions.contains("network") else {
+            guard self.extensionID == WhatsAppWebBridge.managedExtensionID,
+                  self.manifest.permissions.contains("network") else {
                 return JSValue(object: NSNull(), in: self.context)
             }
             guard Thread.isMainThread else {
@@ -506,7 +596,8 @@ final class ExtensionJSRuntime {
 
         let startWhatsAppWeb: @convention(block) () -> Void = { [weak self] in
             guard let self else { return }
-            guard self.manifest.permissions.contains("network") else { return }
+            guard self.extensionID == WhatsAppWebBridge.managedExtensionID,
+                  self.manifest.permissions.contains("network") else { return }
             Task { @MainActor in
                 WhatsAppWebBridge.shared.start()
             }
@@ -514,7 +605,8 @@ final class ExtensionJSRuntime {
 
         let refreshWhatsAppWebQR: @convention(block) () -> Void = { [weak self] in
             guard let self else { return }
-            guard self.manifest.permissions.contains("network") else { return }
+            guard self.extensionID == WhatsAppWebBridge.managedExtensionID,
+                  self.manifest.permissions.contains("network") else { return }
             Task { @MainActor in
                 WhatsAppWebBridge.shared.refreshQRCode()
             }
@@ -522,7 +614,8 @@ final class ExtensionJSRuntime {
 
         let sendWhatsAppWebMessage: @convention(block) (String, String) -> JSValue? = { [weak self] recipient, message in
             guard let self else { return JSValue(nullIn: JSContext.current()) }
-            guard self.manifest.permissions.contains("network") else {
+            guard self.extensionID == WhatsAppWebBridge.managedExtensionID,
+                  self.manifest.permissions.contains("network") else {
                 return JSValue(object: ["ok": false, "queued": false, "error": "permission_denied"], in: self.context)
             }
             guard Thread.isMainThread else {
@@ -537,7 +630,8 @@ final class ExtensionJSRuntime {
 
         let sendWhatsAppWebMessageAsync: @convention(block) (String, String) -> Bool = { [weak self] recipient, message in
             guard let self else { return false }
-            guard self.manifest.permissions.contains("network") else { return false }
+            guard self.extensionID == WhatsAppWebBridge.managedExtensionID,
+                  self.manifest.permissions.contains("network") else { return false }
 
             Task { @MainActor in
                 _ = WhatsAppWebBridge.shared.sendMessage(to: recipient, body: message)
@@ -545,7 +639,8 @@ final class ExtensionJSRuntime {
             return true
         }
 
-        let dismissNotification: @convention(block) (String) -> Bool = { sourceID in
+        let dismissNotification: @convention(block) (String) -> Bool = { [weak self] sourceID in
+            guard let self, self.manifest.permissions.contains("notifications") else { return false }
             let normalizedSourceID = sourceID.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !normalizedSourceID.isEmpty else { return false }
             return MainActor.assumeIsolated {
@@ -716,7 +811,7 @@ final class ExtensionJSRuntime {
               gauge: function(value, opts) { return { type: 'gauge', value: value, min: (opts && opts.min) ?? 0, max: (opts && opts.max) ?? 1, label: opts && opts.label }; },
               divider: function() { return { type: 'divider' }; },
               button: function(label, action) { return { type: 'button', label: label, action: action }; },
-              inputBox: function(placeholder, text, action, opts) { return { type: 'input-box', id: (opts && opts.id) ? String(opts.id) : '', placeholder: placeholder ?? '', text: String(text ?? ''), action: action, autoFocus: opts && opts.autoFocus !== undefined ? !!opts.autoFocus : true, minHeight: (opts && opts.minHeight) ? Number(opts.minHeight) : 72, showsEmojiButton: opts && opts.showsEmojiButton !== undefined ? !!opts.showsEmojiButton : false }; },
+              inputBox: function(placeholder, text, action, opts) { return { type: 'input-box', id: (opts && opts.id) ? String(opts.id) : '', placeholder: placeholder ?? '', text: String(text ?? ''), action: action, autoFocus: opts && opts.autoFocus !== undefined ? !!opts.autoFocus : true, minHeight: (opts && opts.minHeight) ? Number(opts.minHeight) : 72, showsEmojiButton: opts && opts.showsEmojiButton !== undefined ? !!opts.showsEmojiButton : false, compact: opts && opts.compact !== undefined ? !!opts.compact : false, submitLabel: opts && opts.submitLabel ? opts.submitLabel : null }; },
               toggle: function(isOn, label, action) { return { type: 'toggle', isOn: !!isOn, label: label, action: action }; },
               slider: function(value, min, max, action) { return { type: 'slider', value: value, min: min, max: max, action: action }; },
               padding: function(child, opts) { return { type: 'padding', child: child, edges: (opts && opts.edges) ?? 'all', amount: (opts && opts.amount) ?? 8 }; },
@@ -1074,6 +1169,7 @@ final class ExtensionJSRuntime {
                 content: content,
                 trigger: UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
             )
+            let runtimeID = extensionID
             center.getNotificationSettings { settings in
                 switch settings.authorizationStatus {
                 case .authorized, .provisional, .ephemeral:
@@ -1082,6 +1178,10 @@ final class ExtensionJSRuntime {
                     center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
                         guard granted else { return }
                         center.add(request)
+                        Task { @MainActor in
+                            ExtensionManager.shared.runtimes[runtimeID]?
+                                .refreshSystemNotificationSoundPermission()
+                        }
                     }
                 case .denied:
                     break
@@ -1147,7 +1247,6 @@ final class ExtensionJSRuntime {
             return nil
         }
 
-        let resolvedExtensionID = normalizedText(value.forProperty("extensionID")?.toString()) ?? extensionID
         let presentationRaw = normalizedText(value.forProperty("presentation")?.toString())
             ?? NotificationActionPresentation.fullExpanded.rawValue
         let presentation = NotificationActionPresentation(rawValue: presentationRaw) ?? .fullExpanded
@@ -1163,7 +1262,7 @@ final class ExtensionJSRuntime {
         }
 
         return NotificationTapAction(
-            extensionID: resolvedExtensionID,
+            extensionID: extensionID,
             actionID: actionID,
             payload: payload,
             presentation: presentation

@@ -21,13 +21,25 @@ your-extension/
 
 Drop your extension folder into `Extensions/` and it will be discovered automatically when you run the app.
 
+## Installing a third-party extension
+
+1. Open **Settings -> Extensions**.
+2. Click **Install Extension** and choose a folder containing `manifest.json` and the declared entry script.
+3. Review the extension metadata and requested permissions, then confirm installation.
+
+Confirmed extensions are copied into the user's Application Support directory and activated immediately. Only user-installed extensions can be uninstalled; uninstalling removes the copied files plus namespaced extension storage and settings. Bundled extensions can be deactivated but not removed.
+
+The first version accepts folders only. ZIP archives and replacement installs with an existing ID are rejected, so unzip the package first and uninstall an older copy before installing a replacement. Third-party IDs cannot use the reserved `superisland.*` namespace.
+
+The repository includes [Nudge](InstallableExtensions/Nudge) as a ready-to-install third-party example. Select that folder in the installer; it is intentionally outside `Extensions/` so development builds do not discover or bundle it automatically.
+
 ---
 
 ## manifest.json
 
 ```json
 {
-  "id": "superisland.your-extension",
+  "id": "com.example.your-extension",
   "name": "My Extension",
   "version": "1.0.0",
   "minAppVersion": "1.0.0",
@@ -60,6 +72,7 @@ Drop your extension folder into `Extensions/` and it will be discovered automati
 | `network` | `SuperIsland.http.fetch()` |
 | `media` | `SuperIsland.system.getNowPlaying()` |
 | `system` | `SuperIsland.system.getComputerStatus()` |
+| `usage` | `SuperIsland.system.getAIUsage()` |
 | `notifications` | Send macOS notifications |
 
 **Capabilities**
@@ -153,8 +166,17 @@ SuperIsland.http.fetch("https://api.example.com/data")
 
 SuperIsland.notifications.send({
   title: "Time's up",
-  body: "Take a break."
+  body: "Take a break.",
+  sound: true
 })
+
+// Play a named macOS sound. Names are resolved from system sound locations
+// such as ~/Library/Sounds; file paths are rejected.
+SuperIsland.notifications.playSound("Glass")
+
+// Preview a named sound from an explicit extension action, such as a Preview
+// button. This does not depend on notification authorization or sound settings.
+SuperIsland.notifications.previewSound("Glass")
 
 // --- System media (requires "media") ---
 
@@ -263,5 +285,8 @@ SuperIsland.extension.onSettingsChanged(onSettingsChanged);
 
 - Keep your compact view minimal — the pill is small. One piece of key info per slot.
 - Persist any state you'd want restored across app restarts using `SuperIsland.store`.
+- Use `SuperIsland.notifications.playSound(name)` only with the `notifications` permission. Pass a sound name, not a file path.
+- Use `SuperIsland.notifications.previewSound(name)` only from a user-triggered action. Calls made while rendering or from timers are ignored.
+- `View.inputBox()` supports `compact: true` for a 30-point control and a localized `submitLabel` for an explicit submit button; existing inputs keep their current defaults.
 - Use `onRefresh` for polling. Avoid `setInterval` — the runtime controls scheduling.
 - Test with the app running in Xcode; extension console logs appear in the Xcode output.

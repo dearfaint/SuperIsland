@@ -50,7 +50,7 @@
           "default": false,
           "description": {
             "en": "Play a cue when an agent starts working, needs your input, or finishes a task. Also expands the Agents Status island briefly on completion.",
-            "zh-Hans": "当代理开始工作、需要输入或完成任务时播放提示音；完成时还会短暂展开代理状态岛。"
+            "zh-Hans": "当 Agent 开始工作、需要输入或完成任务时播放提示音；完成时还会短暂展开 Agents 状态岛。"
           }
         },
         {

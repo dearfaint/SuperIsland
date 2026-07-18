@@ -13,6 +13,12 @@ struct WeatherCompactView: View {
             Text(formattedTemp(manager.weather.temperature))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.white)
+
+            if !manager.weather.alerts.isEmpty {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.orange)
+            }
         }
     }
 

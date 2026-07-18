@@ -1,0 +1,101 @@
+{
+  "sections": [
+    {
+      "title": {
+        "en": "Reminder Sound",
+        "zh-Hans": "提醒提示音"
+      },
+      "fields": [
+        {
+          "type": "picker",
+          "key": "alertSound",
+          "label": {
+            "en": "Sound",
+            "zh-Hans": "提示音"
+          },
+          "default": "system",
+          "options": [
+            {
+              "value": "system",
+              "label": {
+                "en": "System Default",
+                "zh-Hans": "系统默认"
+              }
+            },
+            {
+              "value": "Glass",
+              "label": {
+                "en": "Glass",
+                "zh-Hans": "Glass"
+              }
+            },
+            {
+              "value": "Funk",
+              "label": {
+                "en": "Funk",
+                "zh-Hans": "Funk"
+              }
+            },
+            {
+              "value": "Pop",
+              "label": {
+                "en": "Pop",
+                "zh-Hans": "Pop"
+              }
+            },
+            {
+              "value": "Basso",
+              "label": {
+                "en": "Basso",
+                "zh-Hans": "Basso"
+              }
+            },
+            {
+              "value": "Ping",
+              "label": {
+                "en": "Ping",
+                "zh-Hans": "Ping"
+              }
+            },
+            {
+              "value": "custom",
+              "label": {
+                "en": "Custom Name",
+                "zh-Hans": "自定义名称"
+              }
+            },
+            {
+              "value": "none",
+              "label": {
+                "en": "Silent",
+                "zh-Hans": "静音"
+              }
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "key": "customSoundName",
+          "label": {
+            "en": "Custom sound name (~/Library/Sounds)",
+            "zh-Hans": "自定义声音名称（~/Library/Sounds）"
+          },
+          "placeholder": {
+            "en": "Ping",
+            "zh-Hans": "例如 Ping"
+          },
+          "default": "Ping"
+        },
+        {
+          "type": "button",
+          "key": "previewSound",
+          "action": "preview-sound",
+          "label": {
+            "en": "Preview named or custom sound",
+            "zh-Hans": "试听命名或自定义提示音"
+          }
+        }
+      ]
+    }
+  ]
+}

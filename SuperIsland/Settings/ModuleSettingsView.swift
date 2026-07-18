@@ -88,6 +88,63 @@ struct ModuleSettingsView: View {
                 }
                 SettingRowDivider()
                 SettingToggleRow(title: "Weather", isOn: $appState.weatherEnabled)
+                if appState.weatherEnabled {
+                    SettingRowDivider()
+                    weatherDataSourceRow
+                    if appState.weatherDataSource == .auto || appState.weatherDataSource == .qweather {
+                        SettingRowDivider()
+                        weatherCredentialRow(
+                            title: "QWeather API Host",
+                            description: "Leave empty to use devapi.qweather.com.",
+                            text: $appState.qweatherHost,
+                            isSecure: false
+                        )
+                        SettingRowDivider()
+                        weatherCredentialRow(
+                            title: "QWeather Credential ID",
+                            description: "Use the credential ID from the QWeather credential page.",
+                            text: $appState.qweatherCredentialID,
+                            isSecure: false
+                        )
+                        SettingRowDivider()
+                        weatherCredentialRow(
+                            title: "QWeather Project ID",
+                            description: "Use the project ID as the JWT subject.",
+                            text: $appState.qweatherProjectID,
+                            isSecure: false
+                        )
+                        SettingRowDivider()
+                        weatherCredentialRow(
+                            title: "QWeather Private Key",
+                            description: "Paste a PEM private key, Base64 seed, or private-key file path.",
+                            text: $appState.qweatherPrivateKey,
+                            isSecure: true
+                        )
+                    }
+                    if appState.weatherDataSource == .caiyun {
+                        SettingRowDivider()
+                        weatherCredentialRow(
+                            title: "Caiyun App Key",
+                            description: "Use App Key and App Secret for signed Caiyun requests.",
+                            text: $appState.caiyunAppKey,
+                            isSecure: true
+                        )
+                        SettingRowDivider()
+                        weatherCredentialRow(
+                            title: "Caiyun App Secret",
+                            description: "Use App Key and App Secret for signed Caiyun requests.",
+                            text: $appState.caiyunAppSecret,
+                            isSecure: true
+                        )
+                        SettingRowDivider()
+                        weatherCredentialRow(
+                            title: "Caiyun Legacy Token",
+                            description: "Legacy token is used only when App Key or App Secret is empty.",
+                            text: $appState.caiyunToken,
+                            isSecure: true
+                        )
+                    }
+                }
                 SettingRowDivider()
                 HStack {
                     Text("Temperature Unit")
@@ -197,6 +254,68 @@ struct ModuleSettingsView: View {
                 autoRequestTeleprompterPermissionsIfNeeded()
             }
         }
+        .onChange(of: appState.weatherDataSource) { _, _ in
+            if appState.weatherEnabled {
+                WeatherManager.shared.refreshIgnoringCache()
+            }
+        }
+    }
+
+    private var weatherDataSourceRow: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Weather Data Source")
+                    .font(.system(size: 13))
+                Text("Automatic uses QWeather in mainland China when configured, otherwise Open-Meteo.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 12)
+            Picker("", selection: $appState.weatherDataSource) {
+                ForEach(WeatherDataSource.allCases) { source in
+                    Text(source.titleResource).tag(source)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 150)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+    }
+
+    private func weatherCredentialRow(
+        title: LocalizedStringResource,
+        description: LocalizedStringResource,
+        text: Binding<String>,
+        isSecure: Bool
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13))
+                Text(description)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 12)
+            Group {
+                if isSecure {
+                    SecureField("", text: text)
+                } else {
+                    TextField("", text: text)
+                }
+            }
+            .textFieldStyle(.roundedBorder)
+            .font(.system(size: 12))
+            .frame(width: 220)
+            .onSubmit {
+                WeatherManager.shared.refreshIgnoringCache()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
     }
 
     private var teleprompterPermissionRow: some View {

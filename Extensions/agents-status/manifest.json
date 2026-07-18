@@ -2,7 +2,7 @@
   "id": "superisland.agents-status",
   "name": {
     "en": "Agents Status",
-    "zh-Hans": "代理状态"
+    "zh-Hans": "Agents 状态"
   },
   "version": "1.6.0",
   "minAppVersion": "1.0.0",
