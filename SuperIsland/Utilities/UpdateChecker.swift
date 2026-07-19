@@ -4,7 +4,7 @@ import Foundation
 final class UpdateChecker: ObservableObject {
     static let shared = UpdateChecker()
 
-    private static let apiURL = URL(string: "https://api.github.com/repos/dearfaint/SuperIsland/releases/latest")!
+    private static let apiURL = URL(string: "https://api.github.com/repos/dearfaint/SuperIsland/releases")!
     private static let lastCheckedKey = "updateChecker.lastCheckedAt"
     private static let dailyInterval: TimeInterval = 86400
 
@@ -49,9 +49,11 @@ final class UpdateChecker: ObservableObject {
             request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
             request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
 
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
 
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            guard let httpResponse = response as? HTTPURLResponse,
+                  200..<300 ~= httpResponse.statusCode,
+                  let json = try Self.latestRelease(from: data),
                   let tagName = json["tag_name"] as? String,
                   let htmlURL = json["html_url"] as? String,
                   let releaseURL = URL(string: htmlURL) else {
@@ -74,6 +76,14 @@ final class UpdateChecker: ObservableObject {
         } catch {
             checkState = .failed("Could not reach GitHub.")
         }
+    }
+
+    private static func latestRelease(from data: Data) throws -> [String: Any]? {
+        let object = try JSONSerialization.jsonObject(with: data)
+        if let releases = object as? [[String: Any]] {
+            return releases.first { ($0["draft"] as? Bool) != true }
+        }
+        return object as? [String: Any]
     }
 
     private func isNewer(_ candidate: String, than current: String) -> Bool {

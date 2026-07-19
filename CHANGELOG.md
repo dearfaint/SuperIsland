@@ -5,6 +5,7 @@ This project follows a concise, date-based change log.
 ## Unreleased
 
 - Bumped the app release version to 1.1.0 with build 12 and pointed the in-app GitHub update check at `dearfaint/SuperIsland`.
+- Fixed the in-app update check so GitHub pre-releases such as `v1.1.0` are read from the fork's releases list instead of failing on the latest-release endpoint.
 - Added English and Simplified Chinese localization infrastructure for the native app and system permission descriptions.
 - Localized native app navigation, settings, onboarding, status, weather, calendar, and battery text.
 - Switched user-facing dates, times, durations, temperatures, and wind speeds to locale-aware platform formatters.

@@ -183,5 +183,5 @@ killall Dock
 `SuperIsland-1.1.0-arm64.dmg`
 
 ```text
-SHA-256: 2380c9367d9fbf8da7e8ef1fab018fb1593410a5215beef37ab1c5d936ed23e0
+SHA-256: 3860d8933fad76a7d1268f2a40dcc32919c257620b18f816d2e9dcab784a49e0
 ```
